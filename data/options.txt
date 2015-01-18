@@ -1,0 +1,3 @@
+calculateOld	0
+noDelayed	0
+repLimDay	3
