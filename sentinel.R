@@ -427,7 +427,16 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
 # Γράφημα με το ILI rate κατά σύστημα (για μία μόνο χρονιά)
 sentinelGraphBySystem <- function(year, ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις", ygrid=0, ci=FALSE, plot=rep(TRUE,5))
 {
-  astAggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=aggr2$yearweek, astikot=aggr2$astikot), sum, na.rm=TRUE)
+  astAggr2 <- aggr2
+  astAggr2$gri_w <- ifelse(astAggr2$astikot==1,
+    (astAggr2$gritot/astAggr2$totvis)*1000*aggr1$as_p_nu2,
+    (astAggr2$gritot/astAggr2$totvis)*1000*aggr1$ag_p_nu2)
+  astAggr2$gri_w[is.na(astAggr2$gri_w)] = 0
+  astAggr2$gri_w_var <- ifelse(astAggr2$astikot==1,
+    ((astAggr2$gritot/astAggr2$totvis)*(1-astAggr2$gritot/astAggr2$totvis)/astAggr2$totvis)*(1000*aggr1$as_p_nu2)^2,
+    ((astAggr2$gritot/astAggr2$totvis)*(1-astAggr2$gritot/astAggr2$totvis)/astAggr2$totvis)*(1000*aggr1$ag_p_nu2)^2)
+  astAggr2$gri_w_var[is.na(astAggr2$gri_w_var)] = 0
+  astAggr3 <- aggregate(astAggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=astAggr2$yearweek, astikot=astAggr2$astikot), sum, na.rm=TRUE)
   astAggr3 <- subset(astAggr3, yearweek>200427 & yearweek<210000)
   spAggr1 <- aggregate(sentinelBig[,c("etos", "ebdo", "ast_p_nu", "agr_p_nu", "as_p_nu1", "ag_p_nu1", "as_p_nu2", "ag_p_nu2")], by=list(monada=sentinelBig$monada, astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), mean, na.rm=TRUE)
   spAggr2 <- aggregate(sentinelBig[,c("totvis", "gritot")], by=list(monada=sentinelBig$monada, astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), sum, na.rm=TRUE)
@@ -435,12 +444,12 @@ sentinelGraphBySystem <- function(year, ylab="Κρούσματα γριπώδο�
   spAggr2$gri <- (spAggr2$gritot/spAggr2$totvis)*1000
   spAggr2$gri[is.na(spAggr2$gri)] = 0
   spAggr2$gri_w <- ifelse(spAggr2$astikot==1,
-    (spAggr2$gritot/spAggr2$totvis)*1000*spAggr1$ast_p_nu,
-    (spAggr2$gritot/spAggr2$totvis)*1000*spAggr1$agr_p_nu)
+    (spAggr2$gritot/spAggr2$totvis)*1000*spAggr1$as_p_nu2,
+    (spAggr2$gritot/spAggr2$totvis)*1000*spAggr1$ag_p_nu2)
   spAggr2$gri_w[is.na(spAggr2$gri_w)] = 0
   spAggr2$gri_w_var <- ifelse(spAggr2$astikot==1,
-    ((spAggr2$gritot/spAggr2$totvis)*(1-spAggr2$gritot/spAggr2$totvis)/spAggr2$totvis)*(1000*spAggr1$ast_p_nu)^2,
-    ((spAggr2$gritot/spAggr2$totvis)*(1-spAggr2$gritot/spAggr2$totvis)/spAggr2$totvis)*(1000*spAggr1$agr_p_nu)^2)
+    ((spAggr2$gritot/spAggr2$totvis)*(1-spAggr2$gritot/spAggr2$totvis)/spAggr2$totvis)*(1000*spAggr1$as_p_nu2)^2,
+    ((spAggr2$gritot/spAggr2$totvis)*(1-spAggr2$gritot/spAggr2$totvis)/spAggr2$totvis)*(1000*spAggr1$ag_p_nu2)^2)
   spAggr2$gri_w_var[is.na(spAggr2$gri_w)] = 0
   spAggr3 <- aggregate(spAggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=spAggr2$yearweek, monada=spAggr2$monada), sum, na.rm=TRUE)
   spAggr3 <- subset(spAggr3, yearweek>201402)
@@ -466,7 +475,7 @@ sentinelGraphBySystem <- function(year, ylab="Κρούσματα γριπώδο�
     abline(h=seq(0,limrate,by=ygrid), lty=3, col="lightgrey")
     abline(v=1:(maxwk-19), lty=3, col="lightgrey")
   }
-  pal <- c("deeppink", "blue", "darkorange", "red", "lawngreen")
+  pal <- c("magenta", "dodgerblue3", "orange", "green", "red")
   ltypal <- c("dotted", "solid", "solid", "solid", "solid")
   jitf <- 0.10 * c(0, 0, 1, -1, 0)
   lwdpal <- rep(2,5)
@@ -476,7 +485,7 @@ sentinelGraphBySystem <- function(year, ylab="Κρούσματα γριπώδο�
       if (ci[i]==TRUE) plotCI(1:(maxwk-19) + jitf[i]*ci[i], set[,i], uiw=1.96*sqrt(set_var[,i]), col=pal[i], sfrac=0.005, pch=19, cex=0.6, add=TRUE)
     }
   })
-  legend("topleft", c("Αστικός πληθυσμός", "ΚΥ", "ΠΕΔΥ", "Ιδιώτες", "Συνολικό"), col=pal, lty=ltypal, lwd=lwdpal, pt.cex=0.6, pch=19, inset=0.03, bg="white", box.col="white")
+  legend("topleft", c("Αστικός\nπληθυσμός", "ΚΥ", "ΠΕΔΥ", "Ιδιώτες", "Συνολικό"), col=pal, lty=ltypal, lwd=lwdpal, pt.cex=0.6, pch=19, inset=0.03, bg="white", box.col="white")
   return()
 }
 
