@@ -193,15 +193,14 @@ nomos_populations<-nomos_populations[order(nomos_populations$nomadil),]
 if (opts$calculateOld) {
   source("oldSentinel.R", encoding="utf-8") # Υπολογίζει ξανά τα αποτελεσμάτα του παλιού sentinel...
   oldeAggr3 <- aggr3
+  # (Eφόσον ζητήθηκε επανυπολογισμός, kράτα ΟΛΑ τα αποτελέσματα του παλιού sentinel - όχι μόνο το aggr3.)
+  oldeAggr2 <- aggr2
+  oldeAggr1 <- aggr1
 } else { # ...ή τα φορτώνει΄έτοιμα, σωσμένα από προηγούμενη ανάλυση.
   oldeAggr3 <- read.csv2(paste(path_input, "ratechart.csv", sep=""), row.names=1)
   oldeAggr3 <- oldeAggr3[as.integer(rownames(oldeAggr3))<=201439, ]
   colnames(oldeAggr3) <- c("ILI rate", "αρ. γριπωδών συνδρομών", "αρ. επισκέψεων", "ILI rate variance", "Παθολόγοι / Γεν.ιατροί που δήλωσαν", "Παιδίατροι που δήλωσαν", "Εκτιμώμενος πληθυσμιακός παρονομαστής (σύνολο)")
 }
-
-# Συμπλήρωση από κενές τιμές, για την περίοδο (καλοκαίρι 2014) που δεν λειτουργούσε sentinel
-#oldeAggr3 <- rbind(oldeAggr3, matrix(rep(NA,19*6), ncol=6, dimnames=list(201421:201439, colnames(oldeAggr3))))
-
 
 
 cat("\nΑνάγνωση του αρχείου δηλώσεων...\n")
