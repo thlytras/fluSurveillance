@@ -1,8 +1,8 @@
 # Εφαρμογή στατιστικής επεξεργασίας των δεδομένων του συστήματος sentinel
-# v2.0 © 2014, Θοδωρής Λύτρας
+# v2.1 © 2015, Θοδωρής Λύτρας
 #
 # Επεξεργασία των δεδομένων του παλιού sentinel
-# Τελευταία αναθεώρηση: Οκτώβριος 2014
+# Τελευταία αναθεώρηση: Ιανουάριος 2015
 
 cat("\nΕπεξεργασία στοιχείων ΠΑΛΙΟΥ sentinel - παρακαλώ περιμένετε...\n\n")
 
@@ -192,6 +192,11 @@ aggr2$gri_w <- ifelse(aggr2$astikot==1,
   (aggr2$gritot/aggr2$totvis)*1000*aggr1$agr_p_nu)
 aggr2$gri_w[is.na(aggr2$gri_w)] = 0
 
+aggr2$gri_w_var <- ifelse(aggr2$astikot==1,
+  ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$ast_p_nu)^2,
+  ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$agr_p_nu)^2)
+aggr2$gri_w_var[is.na(aggr2$gri_w_var)] = 0
+
 aggr2$gri_w1 <- ifelse(aggr2$astikot==1,
   (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu1,
   (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu1)
@@ -203,7 +208,7 @@ aggr2$gri_w2 <- ifelse(aggr2$astikot==1,
 aggr2$gri_w2[is.na(aggr2$gri_w2)] = 0
 
 
-aggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
+aggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
 aggr3 <- subset(aggr3, yearweek>200427 & yearweek<210000)
 
 aggr3 <- merge(aggr3, subset(data.frame(yearweek=as.integer(rownames(doc_rep)), pa=doc_rep[,1], pd=doc_rep[,2]), yearweek>200427 & yearweek<210000), by.x="yearweek")
@@ -220,7 +225,7 @@ names(ratechart) <- aggr3$yearweek
 rownames(aggr3) <- aggr3$yearweek
 aggr3$yearweek <- NULL
 aggr3$gri_w <- round(aggr3$gri_w,2)
-colnames(aggr3)[1:5] <- c("ILI rate", "αρ. γριπωδών συνδρομών", "αρ. επισκέψεων", "Παθολόγοι / Γεν.ιατροί που δήλωσαν", "Παιδίατροι που δήλωσαν")
+colnames(aggr3)[1:6] <- c("ILI rate", "αρ. γριπωδών συνδρομών", "αρ. επισκέψεων", "ILI rate variance", "Παθολόγοι / Γεν.ιατροί που δήλωσαν", "Παιδίατροι που δήλωσαν")
 
 # Trim-άρισμα του ratechart
 for (i in length(ratechart):1)

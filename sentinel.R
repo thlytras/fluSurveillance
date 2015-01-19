@@ -1,9 +1,12 @@
 # Εφαρμογή στατιστικής επεξεργασίας των δεδομένων του συστήματος sentinel
-# v2.0.1 © 2014, Θοδωρής Λύτρας
+# v2.1 © 2015, Θοδωρής Λύτρας
 # Βασισμένο σε κώδικα SPSS, του Πάνου Κατερέλου και Σταύρου Πατρινού
-# Τελευταία αναθεώρηση: Νοέμβριος 2014
+# Τελευταία αναθεώρηση: Ιανουάριος 2015
 
 # **** Read/set global options ****
+
+require(foreign) # Απαιτείται το πακέτο foreign, για την ανάγνωση αρχείων SPSS και EpiData
+require(plotrix) # Χρειάζεται για την εκτύπωση 95% CI στο διάγραμμα
 
 path_input = "./data/"
 path_output = "./output/"
@@ -32,7 +35,7 @@ readerrmsg <- c("Σφάλμα κατά την ανάγνωση του αρχεί
 # ******** ΠΡΟΕΤΟΙΜΑΣΙΑ ********
 
 cat("\nΚαλωσήλθατε στο πρόγραμμα ανάλυσης του συστήματος sentinel για τη γρίπη.\n")
-cat("v2.0 © 2014, Θοδωρής Λύτρας\n")
+cat("v2.1 © 2015, Θοδωρής Λύτρας\n")
 cat("Διαβάστε το αρχείο README.html για σύντομες οδηγίες χρήσεως.\n")
 
 # Έλεγχος αν υπάρχουν όλα τα απαραίτητα
@@ -123,6 +126,19 @@ repeat {
   }
 
 repeat {
+  input<-readline(paste("\nΘέλετε διαστήματα εμπιστοσύνης στις καμπύλες?\n (1=Όχι, 2=Ναι, 3=Μόνο τελευταία χρονιά) [1] ",sep=""))
+  if(input=="") { ciInPlot <- FALSE; break }
+  else {
+    suppressWarnings(input<-as.integer(input))
+    if (is.na(input)) input <- 0
+    if (input==1) { ciInPlot <- FALSE; break }
+    if (input==2) { ciInPlot <- TRUE; break }
+    if (input==3) { ciInPlot <- c(FALSE, FALSE, TRUE); break }
+    cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    }
+  }
+
+repeat {
   input<-readline(paste("\nΑπό ποιά έως ποιά εβδομάδα να δείξω διαχρονικά την καμπύλη? (YYYYWW) [200426-",(curyear+1)*100+26,"] ",sep=""))
   if(input=="") { diaxyear<-c(200426,(curyear+1)*100+26); break }
   else {
@@ -161,7 +177,6 @@ if (length(formats)>0) {
 timer<-system.time({   # έναρξη χρονομέτρησης
 
 cat("\nΕπεξεργασία στοιχείων - παρακαλώ περιμένετε...\n\n")
-require(foreign) # Απαιτείται το πακέτο foreign, για την ανάγνωση αρχείων SPSS και EpiData
 
 
 # Φόρτωση αρχείου πληθυσμών ανά νομό
@@ -181,7 +196,7 @@ if (opts$calculateOld) {
 } else { # ...ή τα φορτώνει΄έτοιμα, σωσμένα από προηγούμενη ανάλυση.
   oldeAggr3 <- read.csv2(paste(path_input, "ratechart.csv", sep=""), row.names=1)
   oldeAggr3 <- oldeAggr3[as.integer(rownames(oldeAggr3))<=201439, ]
-  colnames(oldeAggr3) <- c("ILI rate", "αρ. γριπωδών συνδρομών", "αρ. επισκέψεων", "Παθολόγοι / Γεν.ιατροί που δήλωσαν", "Παιδίατροι που δήλωσαν", "Εκτιμώμενος πληθυσμιακός παρονομαστής (σύνολο)")
+  colnames(oldeAggr3) <- c("ILI rate", "αρ. γριπωδών συνδρομών", "αρ. επισκέψεων", "ILI rate variance", "Παθολόγοι / Γεν.ιατροί που δήλωσαν", "Παιδίατροι που δήλωσαν", "Εκτιμώμενος πληθυσμιακός παρονομαστής (σύνολο)")
 }
 
 # Συμπλήρωση από κενές τιμές, για την περίοδο (καλοκαίρι 2014) που δεν λειτουργούσε sentinel
@@ -255,6 +270,12 @@ aggr2$gri_w <- ifelse(aggr2$astikot==1,
   (aggr2$gritot/aggr2$totvis)*1000*aggr1$agr_p_nu)
 aggr2$gri_w[is.na(aggr2$gri_w)] = 0
 
+# Υπολογισμός variance (βάσει διωνυμικής κατανομής και large-sample: p(1-p)/N ) για καθένα από τα ζυγισμένα rate.
+aggr2$gri_w_var <- ifelse(aggr2$astikot==1,
+  ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$ast_p_nu)^2,
+  ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$agr_p_nu)^2)
+aggr2$gri_w_var[is.na(aggr2$gri_w_var)] = 0
+
 aggr2$gri_w1 <- ifelse(aggr2$astikot==1,
   (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu1,
   (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu1)
@@ -273,7 +294,7 @@ showgri<-function(yweek) {
   result
   }
 
-aggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
+aggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
 aggr3 <- subset(aggr3, yearweek>200427 & yearweek<210000)
 
 aggr3 <- merge(aggr3, subset(data.frame(yearweek=as.integer(rownames(doc_rep)), pa=doc_rep[,1], pd=doc_rep[,2]), yearweek>200427 & yearweek<210000), by.x="yearweek")
@@ -295,13 +316,14 @@ if (file.exists(paste(path_input,"abcdland.csv",sep=""))) {
 rownames(aggr3) <- aggr3$yearweek
 aggr3$yearweek <- NULL
 aggr3$gri_w <- round(aggr3$gri_w,2)
-colnames(aggr3)[1:5] <- colnames(oldeAggr3)[1:5]
+colnames(aggr3)[1:6] <- colnames(oldeAggr3)[1:6]
 
 aggr3 <- rbind(oldeAggr3, aggr3) # Συνένωση με τα αποτελέσματα του παλιού sentinel
 
 ratechart <- aggr3[,1]
 names(ratechart) <- rownames(aggr3)
-
+ratechart_var <- aggr3[,4]
+names(ratechart_var) <- rownames(aggr3)
 
 
 # ******** ΕΞΑΓΩΓΗ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ********
@@ -341,10 +363,12 @@ diax_graph <- function(years,col="darkred") {
 sentinel_graph <- function(years, col=rainbow(length(years)), 
 	yaxis2=NA, mult=1, ygrid=0, lty=rep(1,length(years)), lwd=rep(1,length(years)),
 	ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις",
-	ylab2=NA, ylab2rot=TRUE)
+	ylab2=NA, ylab2rot=TRUE, ci=FALSE)
 {
+  if(length(ci)==1) ci <- rep(ci, length(years))
   maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(years,"-12-31",sep="")))==53))>0, 53, 52)
   set <- sapply(years, function(x){ratechart[as.character(c((x*100+40):(x*100+maxwk),((x+1)*100+1):((x+1)*100+20)))]})
+  set_var <- sapply(years, function(x){ratechart_var[as.character(c((x*100+40):(x*100+maxwk),((x+1)*100+1):((x+1)*100+20)))]})
   limrate <- (max(set,na.rm=TRUE)%/%10+2)*10
   if(!is.na(yaxis2[1])) {
     i2 <- match(yaxis2, years)
@@ -366,7 +390,10 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
   legend("topright", legend=paste(years,years+1,sep="-"), col=col[1:length(years)], lwd=2*lwd, pch=16, 
       box.col="white", box.lwd=10, bg="white", inset=0.01, pt.cex=lwd, lty=lty)
   if (!is.na(yaxis2[1])) {
-    sapply(i1, function(x){points(set[,x], type="o", col=col[x], lwd=2, pch=16)})
+    sapply(i1, function(i){
+      points(set[,i], type="o", col=col[i], lwd=2, pch=16)
+      if (ci[i]) plotCI(set[,i], uiw=1.96*sqrt(set_var[,i]), col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+    })
     par(new=TRUE)
     plot(0, type="n", bty="u", xaxt="n", yaxt="n", ylim=c(0,limrate2), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=NA, xlab=NA)
     if (ylab2rot) {
@@ -376,15 +403,81 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
     } else {
       mtext(ylab2, side=4, line=2.5+grepl("\n",ylab))
     }
-    sapply(i2, function(i){points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, lty=lty[i], cex=lwd[i])})
+    sapply(i2, function(i){
+      points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, lty=lty[i], cex=lwd[i])
+      if (ci[i]) plotCI(set[,i], uiw=1.96*sqrt(set_var[,i]), col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+    })
     axis(4)
     # Οι γραμμές του αριστερού y άξονα θέλουμε να βρίσκονται σε πρώτο πλάνο.
     par(new=TRUE)
     plot(0, type="n", axes=FALSE, ylim=c(0,limrate), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=NA, xlab=NA)
-    sapply(i1, function(x){points(set[,x], type="o", col=col[x], lwd=2*lwd[x], pch=16, cex=lwd[x])})
+    sapply(i1, function(i){
+      points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, cex=lwd[i])
+      if (ci[i]) plotCI(set[,i], uiw=1.96*sqrt(set_var[,i]), col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+    })
   } else {
-    sapply(1:length(years), function(i){points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, lty=lty[i], cex=lwd[i])})
+    sapply(1:length(years), function(i){
+      points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, lty=lty[i], cex=lwd[i])
+      if (ci[i]) plotCI(set[,i], uiw=1.96*sqrt(set_var[,i]), col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+    })
   }
+  return()
+}
+
+# Γράφημα με το ILI rate κατά σύστημα (για μία μόνο χρονιά)
+sentinelGraphBySystem <- function(year, ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις", ygrid=0, ci=FALSE, plot=rep(TRUE,5))
+{
+  astAggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=aggr2$yearweek, astikot=aggr2$astikot), sum, na.rm=TRUE)
+  astAggr3 <- subset(astAggr3, yearweek>200427 & yearweek<210000)
+  spAggr1 <- aggregate(sentinelBig[,c("etos", "ebdo", "ast_p_nu", "agr_p_nu", "as_p_nu1", "ag_p_nu1", "as_p_nu2", "ag_p_nu2")], by=list(monada=sentinelBig$monada, astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), mean, na.rm=TRUE)
+  spAggr2 <- aggregate(sentinelBig[,c("totvis", "gritot")], by=list(monada=sentinelBig$monada, astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), sum, na.rm=TRUE)
+  spAggr2$gritot[is.na(spAggr2$gritot)] = 0
+  spAggr2$gri <- (spAggr2$gritot/spAggr2$totvis)*1000
+  spAggr2$gri[is.na(spAggr2$gri)] = 0
+  spAggr2$gri_w <- ifelse(spAggr2$astikot==1,
+    (spAggr2$gritot/spAggr2$totvis)*1000*spAggr1$ast_p_nu,
+    (spAggr2$gritot/spAggr2$totvis)*1000*spAggr1$agr_p_nu)
+  spAggr2$gri_w[is.na(spAggr2$gri_w)] = 0
+  spAggr2$gri_w_var <- ifelse(spAggr2$astikot==1,
+    ((spAggr2$gritot/spAggr2$totvis)*(1-spAggr2$gritot/spAggr2$totvis)/spAggr2$totvis)*(1000*spAggr1$ast_p_nu)^2,
+    ((spAggr2$gritot/spAggr2$totvis)*(1-spAggr2$gritot/spAggr2$totvis)/spAggr2$totvis)*(1000*spAggr1$agr_p_nu)^2)
+  spAggr2$gri_w_var[is.na(spAggr2$gri_w)] = 0
+  spAggr3 <- aggregate(spAggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=spAggr2$yearweek, monada=spAggr2$monada), sum, na.rm=TRUE)
+  spAggr3 <- subset(spAggr3, yearweek>201402)
+  astAggr3 <- subset(astAggr3, yearweek>201402)
+
+  if (length(ci)==1) ci <- rep(ci, 5)
+  maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(year,"-12-31",sep="")))==53))>0, 53, 52)
+  ywk <- as.character(c((year*100+40):(year*100+maxwk),((year+1)*100+1):((year+1)*100+20)))
+  astAggr3_1 <- subset(astAggr3, astikot==1); rownames(astAggr3_1) <- astAggr3_1$yearweek
+  spAggr3_KEYG <- subset(spAggr3, monada=="KEYG"); rownames(spAggr3_KEYG) <- spAggr3_KEYG$yearweek
+  spAggr3_PEDY <- subset(spAggr3, monada=="PEDY"); rownames(spAggr3_PEDY) <- spAggr3_PEDY$yearweek
+  spAggr3_IDIO <- subset(spAggr3, monada=="IDIO"); rownames(spAggr3_IDIO) <- spAggr3_IDIO$yearweek
+  set <- cbind(astAggr3_1[ywk, "gri_w"], spAggr3_KEYG[ywk, "gri_w"], spAggr3_PEDY[ywk, "gri_w"], spAggr3_IDIO[ywk, "gri_w"], aggr3[ywk,1])
+  set_var <- cbind(astAggr3_1[ywk, "gri_w_var"], spAggr3_KEYG[ywk, "gri_w_var"], spAggr3_PEDY[ywk, "gri_w_var"], spAggr3_IDIO[ywk, "gri_w_var"], aggr3[ywk,4])
+  limrate <- (max(sapply(1:ncol(set), function(i)max((set[,i] + 1.96*sqrt(set_var[,i])*ci[i])*plot[i], na.rm=TRUE))) %/% 10 + 2) * 10
+  par(mar=c(5.1,4.1+grepl("\n",ylab),2.1,2.1))
+  plot(0, type="n", bty="l", xaxt="n", ylim=c(0,limrate), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=ylab, xlab="Εβδομάδα")
+  axis(1, at=1:(maxwk-19), labels=NA)
+  mtext(c(40:maxwk,1:20), side=1, at=1:(maxwk-19), cex=0.7, line=0.5)
+  if (!is.na(ygrid)) {
+    if (ygrid==0)
+      ygrid <- ifelse(limrate<120, 10, 20)
+    abline(h=seq(0,limrate,by=ygrid), lty=3, col="lightgrey")
+    abline(v=1:(maxwk-19), lty=3, col="lightgrey")
+  }
+  pal <- c("deeppink", "blue", "darkorange", "red", "lawngreen")
+  ltypal <- c("dotted", "solid", "solid", "solid", "solid")
+  jitf <- 0.10 * c(0, 0, 1, -1, 0)
+  lwdpal <- rep(2,5)
+  sapply(1:ncol(set), function(i){
+    if (plot[i]) {
+      points(1:(maxwk-19) + jitf[i]*ci[i], set[,i], type="l", col=pal[i], lty=ltypal[i], lwd=lwdpal[i])
+      if (ci[i]==TRUE) plotCI(1:(maxwk-19) + jitf[i]*ci[i], set[,i], uiw=1.96*sqrt(set_var[,i]), col=pal[i], sfrac=0.005, pch=19, cex=0.6, add=TRUE)
+    }
+  })
+  legend("topleft", c("Αστικός πληθυσμός", "ΚΥ", "ΠΕΔΥ", "Ιδιώτες", "Συνολικό"), col=pal, lty=ltypal, lwd=lwdpal, pt.cex=0.6, pch=19, inset=0.03, bg="white", box.col="white")
+  return()
 }
 
 
@@ -392,22 +485,27 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
 if (graphtype=="ps" || graphtype=="pdf") {
   graph1 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""), width=10, height=6)
   graph2 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_allyears.", graphtype, sep=""), width=10, height=6)
+  graph3 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_bySystem_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""), width=10, height=6)
   
 } else if (graphtype=="svg") {
   graph1 <- call("svg", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".svg",sep=""), width=10, height=6)
   graph2 <- call("svg", filename = paste(path_output, "sentinel_allyears.svg",sep=""), width=10, height=6)
+  graph3 <- call("svg", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".svg",sep=""), width=10, height=6)
   
 } else if (graphtype=="jpg") {
   graph1 <- call("jpeg", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".jpg",sep=""), width=2800, height=1680, res=288)
   graph2 <- call("jpeg", filename = paste(path_output, "sentinel_allyears.jpg",sep=""), width=2800, height=1680, res=288)
+  graph3 <- call("jpeg", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".jpg",sep=""), width=2800, height=1680, res=288)
   
 } else if (graphtype=="png") {
   graph1 <- call("png", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".png",sep=""), width=2800, height=1680, res=288)
   graph2 <- call("png", filename = paste(path_output, "sentinel_allyears.png",sep=""), width=2800, height=1680, res=288)
+  graph3 <- call("png", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".png",sep=""), width=2800, height=1680, res=288)
   
 } else if (graphtype=="tiff") {
   graph1 <- call("tiff", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288)
   graph2 <- call("tiff", filename = paste(path_output, "sentinel_allyears.tif",sep=""), width=2800, height=1680, res=288)
+  graph3 <- call("tiff", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288)
 }
 
 if (is.na(graphtype)) {
@@ -416,17 +514,21 @@ if (is.na(graphtype)) {
   eval(graph1)
   ytp <- c(tgtyear-2, tgtyear-1,tgtyear)
   if (sum(ytp>=2014)>0 & sum(ytp>=2014)<length(ytp)) {
-    sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5),
+    sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), ci=ciInPlot,
       yaxis2=ytp[ytp<2014], mult=1/5, 
       ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Νέο σύστημα επιτήρησης, 2014-2015)",
       ylab2="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Παλιό σύστημα επιτήρησης, 2012-2013, 2013-2014)")
   } else {
-    sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5))
+    sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), ci=ciInPlot)
   }
   dev.off()
   
   eval(graph2)
   diax_graph(diaxyear)
+  dev.off()
+  
+  eval(graph3)
+  sentinelGraphBySystem(tgtyear, ci=TRUE)
   dev.off()
 }
 
