@@ -582,7 +582,7 @@ cat(paste("Rate για την εβδομάδα ",(tgtweek%%100),"/",((tgtweek%/%
 # Απεικόνιση "εκτιμώμενου" συνολικού πληθυσμού
 # (Excelάκι Κατερέλου-Καλαμάρα, βάσει του οποίου δηλώνουμε στο TESSy)
 if (file.exists(paste(path_input,"abcdland.csv",sep=""))) {
-  cat(paste("\"Εκτιμώμενος\" πληθυσμιακός παρονομαστής (σύνολο): ",prettyNum(aggr3[as.character(tgtweek),6], big.mark="."),"\n",sep=""))
+  cat(paste("\"Εκτιμώμενος\" πληθυσμιακός παρονομαστής (σύνολο): ",prettyNum(aggr3[as.character(tgtweek),7], big.mark="."),"\n",sep=""))
   }
 
 cat("\nΤέλος!\n")
