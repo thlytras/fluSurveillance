@@ -3,7 +3,6 @@ library(XLConnect)
 path_input = "./data/"
 path_output = "./output/"
 
-
 # Συνάρτηση υπολογισμού της εβδομάδας κατά ISO
 isoweek <- function(x, type="week") {
   alts=c("week","year","both_text","both_num")
@@ -94,7 +93,6 @@ all_swabs <- Reduce(`+`, lapply(c("BOREIA ELLADA", "EKPA", "NOTIA.ELLADA"), func
     rownames(a) <- a$Week
     as.matrix(a[,-1])
 }))
-all_swabs[-(1:match(tgtweek, weekSel)),] <- 0
 
 
 methExcel <- loadWorkbook(paste(path_input, "ICU_Full.xls", sep=""))
@@ -119,21 +117,26 @@ totDeaths$yearweekf <- factor(totDeaths$yearweek, levels=weekSel)
 
 
 
-swabPlot <- function(limweek=tgtweek){
+swabPlot <- function(limweek=tgtweek, ymax=NA){
+    allSwabs <- all_swabs
+    allSwabs[-(1:match(limweek, weekSel)),] <- 0
+    if (is.na(ymax)) ymax <- max(allSwabs[,1])+20
+    ymax <- ceiling(ymax/20)*20
     swCol <- c("dodgerblue3", "sandybrown", "red3", "orangered", "lightpink3", "darkgrey")
-    barplot(t(all_swabs[,c("Β", "A.H3N2.", "A.H1N1.pdm09", "Other", "Pending.1", "Negative")]), 
-	beside=FALSE, border=NA, col=swCol, las=2, axisnames=F, cex.axis=0.9, 
+    barplot(t(allSwabs[,c("Β", "A.H3N2.", "A.H1N1.pdm09", "Other", "Pending.1", "Negative")]), 
+	beside=FALSE, border=NA, col=swCol, las=2, axisnames=F, cex.axis=0.9, ylim=c(0, ymax),
 	ylab="Φαρυγγικά δείγματα και απομονωθέντα στελέχη", font.lab=2, cex.lab=0.9)
     abline(h=seq(0,500,20), col="lightgrey", lwd=0.5)
     abline(h=0)
-    bpos <- barplot(t(all_swabs[,c("Β", "A.H3N2.", "A.H1N1.pdm09", "Other", "Pending.1", "Negative")]), 
-	beside=FALSE, border=NA, col=swCol, add=TRUE, axes=F, axisnames=F,
+    bpos <- barplot(t(allSwabs[,c("Β", "A.H3N2.", "A.H1N1.pdm09", "Other", "Pending.1", "Negative")]), 
+	beside=FALSE, border=NA, col=swCol, add=TRUE, axes=F, axisnames=F, ylim=c(0, ymax),
 	legend.text=c("B", "A(H3N2)", "A(H1N1)pdm09", "A", "Αναμένεται τυποποίηση", "Αρνητικά δείγματα"),
 	args.legend=list(bty="o", box.col="white", bg="white", border=NA, cex=0.8, x="topright"))
-    axis(1, at=bpos[seq(1,length(bpos),2)], labels=rownames(all_swabs)[seq(1,length(bpos),2)], 
+    axis(1, at=bpos[seq(1,length(bpos),2)], labels=rownames(allSwabs)[seq(1,length(bpos),2)], 
 	lwd=0, cex.axis=0.8, line=-1)
-    axis(1, at=bpos[seq(2,length(bpos),2)], labels=rownames(all_swabs)[seq(2,length(bpos),2)], 
+    axis(1, at=bpos[seq(2,length(bpos),2)], labels=rownames(allSwabs)[seq(2,length(bpos),2)], 
 	lwd=0, cex.axis=0.8, line=-1)
+    axis(2, at=c(-10, 10000))
     mtext("Εβδομάδα", side=1, cex=0.9, font=2, line=1.5)
     return()
 }
@@ -307,7 +310,10 @@ if (makeReport) {
   cat("\nΕτοιμάζω την έκθεση...\n\n")
   library(odfWeave)
   if (!exists("sentinel_graph")) load(paste(path_output, "latest_analysis.RData", sep=""))
+  options("OutDec" = ",")
+  #unlink(paste(path_output, "flureport-out.odt", sep=""))
   odfWeave(paste(path_input, "flureport.odt", sep=""), paste(path_output, "flureport-out.odt", sep=""))
+  options("OutDec" = ".")
   dev.off()
   cat("\nΈτοιμη η αναφορά!\n")
 }
