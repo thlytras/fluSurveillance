@@ -511,9 +511,9 @@ if (graphtype=="ps" || graphtype=="pdf") {
   graph3 <- call("png", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".png",sep=""), width=2800, height=1680, res=288)
   
 } else if (graphtype=="tiff") {
-  graph1 <- call("tiff", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288)
-  graph2 <- call("tiff", filename = paste(path_output, "sentinel_allyears.tif",sep=""), width=2800, height=1680, res=288)
-  graph3 <- call("tiff", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288)
+  graph1 <- call("tiff", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
+  graph2 <- call("tiff", filename = paste(path_output, "sentinel_allyears.tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
+  graph3 <- call("tiff", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
 }
 
 if (is.na(graphtype)) {
