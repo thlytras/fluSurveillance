@@ -93,6 +93,10 @@ all_swabs <- Reduce(`+`, lapply(c("BOREIA ELLADA", "EKPA", "NOTIA.ELLADA"), func
     rownames(a) <- a$Week
     as.matrix(a[,-1])
 }))
+all_swabs[,"Α"] <- all_swabs[,"A.H3N2."] + all_swabs[,"A.H1N1.pdm09"] + all_swabs[,"Other"] + all_swabs[,"Pending.1"]
+all_swabs[,"Positive"] <- all_swabs[,"Α"] + all_swabs[,"Β"] + all_swabs[,"C"]
+all_swabs[,"Total"] <- all_swabs[,"Positive"] + all_swabs[,"Negative"] + all_swabs[,"Pending"]
+
 
 
 methExcel <- loadWorkbook(paste(path_input, "ICU_Full.xls", sep=""))
@@ -262,6 +266,9 @@ rb$summSwab <- cbind(nosok = rowSums(mapply(function(x,i){
 	}), na.rm=TRUE)
     })))
 rb$summSwab["Α",] <- colSums(rb$summSwab[8:11,])
+rb$summSwab["Positive",] <- colSums(rb$summSwab[5:7,])
+rb$summSwab["Total",] <- colSums(rb$summSwab[2:4,])
+
 
 rb$summSwabTot <- cbind(nosok = rowSums(mapply(function(x,i){
 	a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
@@ -276,6 +283,9 @@ rb$summSwabTot <- cbind(nosok = rowSums(mapply(function(x,i){
 	}), na.rm=TRUE)
     })))
 rb$summSwabTot["Α",] <- colSums(rb$summSwabTot[8:11,])
+rb$summSwabTot["Positive",] <- colSums(rb$summSwabTot[5:7,])
+rb$summSwabTot["Total",] <- colSums(rb$summSwabTot[2:4,])
+
 
 rb$showPct <- function(x, y) { paste(x, " (", round(x*100/y, 1), "%)", sep="") }
 
