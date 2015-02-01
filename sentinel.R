@@ -34,6 +34,8 @@ readerrmsg <- c("Σφάλμα κατά την ανάγνωση του αρχεί
 
 # ******** ΠΡΟΕΤΟΙΜΑΣΙΑ ********
 
+if(!interactive()) sink(paste(path_output, "output.txt", sep=""))
+
 cat("\nΚαλωσήλθατε στο πρόγραμμα ανάλυσης του συστήματος sentinel για τη γρίπη.\n")
 cat("v2.1 © 2015, Θοδωρής Λύτρας\n")
 cat("Διαβάστε το αρχείο README.html για σύντομες οδηγίες χρήσεως.\n")
@@ -102,17 +104,33 @@ curweek<-isoweek(Sys.Date()-7,"both_num")
 curyear<-ifelse((curweek%%100)>=40, curweek%/%100, (curweek%/%100)-1)
 
 repeat {
-  input<-readline(paste("\nΓια ποιά εβδομάδα να δείξω αναλυτικά στοιχεία? (YYYYWW) [",curweek,"] ",sep=""))
+  if(interactive()) {
+    input<-readline(paste("\nΓια ποιά εβδομάδα να δείξω αναλυτικά στοιχεία? (YYYYWW) [",curweek,"] ",sep=""))
+  } else {
+    input <- commandArgs(TRUE)[1]
+    if (is.na(input) || input=="-") input <- ""
+  }
+  cat("input")
   if(input=="") { tgtweek<-curweek; break }
   else {
     suppressWarnings(input<-as.integer(input))
     if (!is.na(input) && (input%%100<54) && input>200427 && input<=curweek) { tgtweek<-input; break }
-    cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    if (interactive()) {
+      cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    } else {
+      cat("input")
+      stop("\nΕσφαλμένη εισαγωγή για την ζητούμενη εβδομάδα.\nΔιακοπή του script.\n")
     }
   }
+}
 
 repeat {
-  input<-readline(paste("\nΠοιάς χρονιάς το διάγραμμα θέλετε? [",curyear,"-",(curyear+1),"] ",sep=""))
+  if(interactive()) {
+    input<-readline(paste("\nΠοιάς χρονιάς το διάγραμμα θέλετε? [",curyear,"-",(curyear+1),"] ",sep=""))
+  } else {
+    input <- commandArgs(TRUE)[2]
+    if (is.na(input) || input=="-") input <- ""
+  }
   if(input=="") { tgtyear<-curyear; break }
   else {
     input<-strsplit(input,"-")[[1]]
@@ -121,12 +139,21 @@ repeat {
     suppressWarnings(input<-as.integer(input[1:2]))
     if ((input[2]-input[1])!=1 | is.na(input[2]-input[1])) input=NA
     if (!is.na(input[1]) && input[1]>2004 && input[1]<=curyear) { tgtyear<-input[1]; break }
-    cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    if (interactive()) {
+      cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    } else {
+      stop("\nΕσφαλμένη εισαγωγή για την ζητούμενη χρονια για το διάγραμμα.\nΔιακοπή του script.\n")
     }
   }
+}
 
 repeat {
-  input<-readline(paste("\nΘέλετε διαστήματα εμπιστοσύνης στις καμπύλες?\n (1=Όχι, 2=Ναι, 3=Μόνο τελευταία χρονιά) [1] ",sep=""))
+  if(interactive()) {
+    input<-readline(paste("\nΘέλετε διαστήματα εμπιστοσύνης στις καμπύλες?\n (1=Όχι, 2=Ναι, 3=Μόνο τελευταία χρονιά) [1] ",sep=""))
+  } else {
+    input <- commandArgs(TRUE)[3]
+    if (is.na(input) || input=="-") input <- ""
+  }
   if(input=="") { ciInPlot <- FALSE; break }
   else {
     suppressWarnings(input<-as.integer(input))
@@ -134,12 +161,21 @@ repeat {
     if (input==1) { ciInPlot <- FALSE; break }
     if (input==2) { ciInPlot <- TRUE; break }
     if (input==3) { ciInPlot <- c(FALSE, FALSE, TRUE); break }
-    cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    if (interactive()) {
+      cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    } else {
+      stop("\nΕσφαλμένη εισαγωγή για το αν θα προσθέσω διαστήματα εμπιστοσύνης στις καμπύλες.\nΔιακοπή του script.\n")
     }
   }
+}
 
 repeat {
-  input<-readline(paste("\nΑπό ποιά έως ποιά εβδομάδα να δείξω διαχρονικά την καμπύλη? (YYYYWW) [200426-",(curyear+1)*100+26,"] ",sep=""))
+  if(interactive()) {
+    input<-readline(paste("\nΑπό ποιά έως ποιά εβδομάδα να δείξω διαχρονικά την καμπύλη? (YYYYWW) [200426-",(curyear+1)*100+26,"] ",sep=""))
+  } else {
+    input <- commandArgs(TRUE)[4]
+    if (is.na(input) || input=="-") input <- ""
+  }
   if(input=="") { diaxyear<-c(200426,(curyear+1)*100+26); break }
   else {
     input<-strsplit(input,"-")[[1]]
@@ -148,8 +184,14 @@ repeat {
     suppressWarnings(input<-as.integer(input[1:2]))
     if (!is.na(input[1]) && !is.na(input[2]) && input[1]>=200426 && input[2]<=(curyear+2)*100+26 && input[2]>input[1] && input[1]%%100<54 && input[2]%%100<54) { diaxyear<-input; break }
     cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    if (interactive()) {
+      cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    } else {
+      stop("\nΕσφαλμένη εισαγωγή για το ζητούμενο διάστημα της διαχρονικής καμπύλης.\nΔιακοπή του script.\n")
     }
   }
+}
+
 
 formats<-c()
 if (capabilities("cairo")) formats <- append(formats,c("ps","pdf","svg"))  # Η βιβλιοθήκη cairo δημιουργεί γραφήματα σε Postscript, PDF και SVG. Συνήθως είναι εγκατεστημένη μόνο στο Linux.
@@ -158,11 +200,20 @@ if (capabilities("tiff")) formats <- append(formats,"tiff")
 if (capabilities("jpeg")) formats <- append(formats,"jpg")
 if (length(formats)>0) {
   repeat {
-    graphtype<-readline(paste("\nΣε τι μορφή τα θέλετε τα διαγράμματα? (",paste(formats,collapse=","),") [",formats[1],"] ",sep=""))
+    if(interactive()) {
+      graphtype<-readline(paste("\nΣε τι μορφή τα θέλετε τα διαγράμματα? (",paste(formats,collapse=","),") [",formats[1],"] ",sep=""))
+    } else {
+      graphtype <- commandArgs(TRUE)[5]
+      if (is.na(graphtype) || graphtype=="-") graphtype<-""
+    }
     if (graphtype=="") graphtype<-formats[1]
     if (graphtype %in% formats) break
-    cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    if (interactive()) {
+      cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
+    } else {
+      stop("\nΕσφαλμένη εισαγωγή για τη μορφή των διαγραμμάτων.\nΔιακοπή του script.\n")
     }
+  }
 } else {
   cat("\nΣφάλμα! Δεν βρέθηκαν ρουτίνες εξαγωγής γραφικών!")
   cat("\nΔεν δύναμαι να εξάγω γραφήματα!")
@@ -591,3 +642,4 @@ cat("\nΤέλος!\n")
 
 cat(paste("\nΧρόνος ανάλυσης:",round(timer["elapsed"],1),"δευτερόλεπτα\n\n"))
 
+if(!interactive()) sink()
