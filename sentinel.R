@@ -8,6 +8,9 @@
 require(foreign) # Απαιτείται το πακέτο foreign, για την ανάγνωση αρχείων SPSS και EpiData
 require(plotrix) # Χρειάζεται για την εκτύπωση 95% CI στο διάγραμμα
 
+# Αν τρέχει ως web, το locale χρειάζεται ρύθμιση...
+if(!interactive()) Sys.setlocale(locale="el_GR.UTF-8")
+
 path_input = "./data/"
 path_output = "./output/"
 opts <- list()
@@ -110,7 +113,6 @@ repeat {
     input <- commandArgs(TRUE)[1]
     if (is.na(input) || input=="-") input <- ""
   }
-  cat("input")
   if(input=="") { tgtweek<-curweek; break }
   else {
     suppressWarnings(input<-as.integer(input))
@@ -118,7 +120,6 @@ repeat {
     if (interactive()) {
       cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
     } else {
-      cat("input")
       stop("\nΕσφαλμένη εισαγωγή για την ζητούμενη εβδομάδα.\nΔιακοπή του script.\n")
     }
   }
