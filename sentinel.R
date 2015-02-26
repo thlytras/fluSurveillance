@@ -1,7 +1,7 @@
 # Εφαρμογή στατιστικής επεξεργασίας των δεδομένων του συστήματος sentinel
-# v2.1 © 2015, Θοδωρής Λύτρας
+# v2.2 © 2015, Θοδωρής Λύτρας
 # Βασισμένο σε κώδικα SPSS, του Πάνου Κατερέλου και Σταύρου Πατρινού
-# Τελευταία αναθεώρηση: Ιανουάριος 2015
+# Τελευταία αναθεώρηση: Φεβρουάριος 2015
 
 # **** Read/set global options ****
 
@@ -536,7 +536,58 @@ sentinelGraphBySystem <- function(year, ylab="Κρούσματα γριπώδο�
       if (ci[i]==TRUE) plotCI(1:(maxwk-19) + jitf[i]*ci[i], set[,i], uiw=1.96*sqrt(set_var[,i]), col=pal[i], sfrac=0.005, pch=19, cex=0.6, add=TRUE)
     }
   })
-  legend("topleft", c("Αστικός\nπληθυσμός", "ΚΥ", "ΠΕΔΥ", "Ιδιώτες", "Συνολικό"), col=pal, lty=ltypal, lwd=lwdpal, pt.cex=0.6, pch=19, inset=0.03, bg="white", box.col="white")
+  legend("topleft", c("Αστικός\nπληθυσμός", "ΚΥ", "ΠΕΔΥ", "Ιδιώτες", "Συνολικό")[plot], col=pal, lty=ltypal, lwd=lwdpal, pt.cex=0.6, pch=19, inset=0.03, bg="white", box.col="white")
+  return()
+}
+
+# Γράφημα με το ILI rate κατά NUTS (για μία μόνο χρονιά)
+sentinelGraphByNUTS <- function(year, ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις", ygrid=0, ci=FALSE, plot=rep(TRUE,5))
+{
+  spAggr2 <- aggr2
+  spAggr2$gritot[is.na(spAggr2$gritot)] = 0
+  spAggr2$gri <- (spAggr2$gritot/spAggr2$totvis)*1000
+  spAggr2$gri[is.na(spAggr2$gri)] = 0
+  spAggr2$gri_w <- ifelse(spAggr2$astikot==1,
+    (spAggr2$gritot/spAggr2$totvis)*1000*aggr1$as_p_nu1,
+    (spAggr2$gritot/spAggr2$totvis)*1000*aggr1$ag_p_nu1)
+  spAggr2$gri_w[is.na(spAggr2$gri_w)] = 0
+  spAggr2$gri_w_var <- ifelse(spAggr2$astikot==1,
+    ((spAggr2$gritot/spAggr2$totvis)*(1-spAggr2$gritot/spAggr2$totvis)/spAggr2$totvis)*(1000*aggr1$as_p_nu1)^2,
+    ((spAggr2$gritot/spAggr2$totvis)*(1-spAggr2$gritot/spAggr2$totvis)/spAggr2$totvis)*(1000*aggr1$ag_p_nu1)^2)
+  spAggr2$gri_w_var[is.na(spAggr2$gri_w)] = 0
+  spAggr3 <- aggregate(spAggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=spAggr2$yearweek, nuts=spAggr2$nuts), sum, na.rm=TRUE)
+  spAggr3 <- subset(spAggr3, yearweek>201402)
+
+  if (length(ci)==1) ci <- rep(ci, 5)
+  maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(year,"-12-31",sep="")))==53))>0, 53, 52)
+  ywk <- as.character(c((year*100+40):(year*100+maxwk),((year+1)*100+1):((year+1)*100+20)))
+  spAggr3_n1 <- subset(spAggr3, nuts==1); rownames(spAggr3_n1) <- spAggr3_n1$yearweek
+  spAggr3_n2 <- subset(spAggr3, nuts==2); rownames(spAggr3_n2) <- spAggr3_n2$yearweek
+  spAggr3_n3 <- subset(spAggr3, nuts==3); rownames(spAggr3_n3) <- spAggr3_n3$yearweek
+  spAggr3_n4 <- subset(spAggr3, nuts==4); rownames(spAggr3_n4) <- spAggr3_n4$yearweek
+  set <- cbind(spAggr3_n1[ywk, "gri_w"], spAggr3_n2[ywk, "gri_w"], spAggr3_n3[ywk, "gri_w"], spAggr3_n4[ywk,"gri_w"], aggr3[ywk,1])
+  set_var <- cbind(spAggr3_n1[ywk, "gri_w_var"], spAggr3_n2[ywk, "gri_w_var"], spAggr3_n3[ywk, "gri_w_var"], spAggr3_n4[ywk, "gri_w_var"], aggr3[ywk,4])
+  limrate <- (max(sapply(1:ncol(set), function(i)max((set[,i] + 1.96*sqrt(set_var[,i])*ci[i])*plot[i], na.rm=TRUE))) %/% 10 + 2) * 10
+  par(mar=c(5.1,4.1+grepl("\n",ylab),2.1,2.1))
+  plot(0, type="n", bty="l", xaxt="n", ylim=c(0,limrate), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=ylab, xlab="Εβδομάδα")
+  axis(1, at=1:(maxwk-19), labels=NA)
+  mtext(c(40:maxwk,1:20), side=1, at=1:(maxwk-19), cex=0.7, line=0.5)
+  if (!is.na(ygrid)) {
+    if (ygrid==0)
+      ygrid <- ifelse(limrate<120, 10, 20)
+    abline(h=seq(0,limrate,by=ygrid), lty=3, col="lightgrey")
+    abline(v=1:(maxwk-19), lty=3, col="lightgrey")
+  }
+  pal <- c("magenta", "dodgerblue3", "orange", "green", "red")
+  jitf <- 0.10 * c(0, 0, 1, -1, 0)
+  pallwd <- c(rep(2, 4), 3)
+  sapply(1:ncol(set), function(i){
+    if (plot[i]) {
+      points(1:(maxwk-19) + jitf[i]*ci[i],  set[,i], type="l", col=pal[i], lwd=pallwd)
+      if (ci[i]==TRUE) plotCI(1:(maxwk-19) + jitf[i]*ci[i], set[,i], uiw=1.96*sqrt(set_var[,i]), col=pal[i], sfrac=0.005, pch=19, cex=0.6, add=TRUE)
+    }
+  })
+  legend("topleft", c("NUTS1 - Βόρεια Ελλάδα", "NUTS2 - Κεντρική Ελλάδα", "NUTS3 - Αττική", "NUTS4 - Νησιά Αιγαίου & Κρήτη", "Συνολικό")[plot], col=pal, lwd=pallwd, pt.cex=0.6, pch=19, inset=0.03, bg="white", box.col="white")
   return()
 }
 
@@ -546,26 +597,29 @@ if (graphtype=="ps" || graphtype=="pdf") {
   graph1 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""), width=10, height=6)
   graph2 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_allyears.", graphtype, sep=""), width=10, height=6)
   graph3 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_bySystem_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""), width=10, height=6)
+  graph4 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_byNUTS_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""), width=10, height=6)
   
 } else if (graphtype=="svg") {
   graph1 <- call("svg", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".svg",sep=""), width=10, height=6)
   graph2 <- call("svg", filename = paste(path_output, "sentinel_allyears.svg",sep=""), width=10, height=6)
   graph3 <- call("svg", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".svg",sep=""), width=10, height=6)
+  graph4 <- call("svg", filename = paste(path_output,"sentinel_byNUTS_",tgtyear,"-",(tgtyear+1),".svg",sep=""), width=10, height=6)
   
 } else if (graphtype=="jpg") {
   graph1 <- call("jpeg", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".jpg",sep=""), width=2800, height=1680, res=288)
   graph2 <- call("jpeg", filename = paste(path_output, "sentinel_allyears.jpg",sep=""), width=2800, height=1680, res=288)
   graph3 <- call("jpeg", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".jpg",sep=""), width=2800, height=1680, res=288)
-  
+  graph4 <- call("jpeg", filename = paste(path_output,"sentinel_byNUTS_",tgtyear,"-",(tgtyear+1),".jpg",sep=""), width=2800, height=1680, res=288)
 } else if (graphtype=="png") {
   graph1 <- call("png", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".png",sep=""), width=2800, height=1680, res=288)
   graph2 <- call("png", filename = paste(path_output, "sentinel_allyears.png",sep=""), width=2800, height=1680, res=288)
   graph3 <- call("png", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".png",sep=""), width=2800, height=1680, res=288)
-  
+  graph4 <- call("png", filename = paste(path_output,"sentinel_byNUTS_",tgtyear,"-",(tgtyear+1),".png",sep=""), width=2800, height=1680, res=288)
 } else if (graphtype=="tiff") {
   graph1 <- call("tiff", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
   graph2 <- call("tiff", filename = paste(path_output, "sentinel_allyears.tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
   graph3 <- call("tiff", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
+  graph4 <- call("tiff", filename = paste(path_output,"sentinel_byNUTS_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
 }
 
 if (is.na(graphtype)) {
@@ -590,6 +644,11 @@ if (is.na(graphtype)) {
   eval(graph3)
   sentinelGraphBySystem(tgtyear, ci=TRUE)
   dev.off()
+
+  eval(graph4)
+  sentinelGraphByNUTS(tgtyear, ci=TRUE)
+  dev.off()
+
 }
 
 # Μετατρέπω την Postscript σε Encapsulate Postscript με το utility ps2eps, αν είναι εγκατεστημένο (MONO για linux)
