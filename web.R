@@ -32,7 +32,7 @@ web_graph <- function(years, col=rainbow(length(years)),
     h$params$series[[i]]$color <- col[i]
     h$params$series[[i]]$lineWidth <- lwd[i]
     h$params$series[[i]]$dashStyle <- lty[i]
-    h$params$series[[1]]$marker$symbol <- "circle"
+    h$params$series[[i]]$marker$symbol <- "circle"
   }
   if (!is.na(yaxis2[1])) {
     h$yAxis(list(list(title=list(text=ylab, margin=30), min=0, max=limrate), 
