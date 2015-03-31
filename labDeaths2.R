@@ -1,4 +1,5 @@
 library(gdata)
+library(foreign)
 
 path_input = "./data/"
 path_output = "./output/"
@@ -122,6 +123,12 @@ totDeaths$yearweekf <- factor(totDeaths$yearweek, levels=weekSel)
 
 
 
+momo <- read.dta(paste(path_input, "momoOutput.dta", sep=""))
+momo$wy <- with(momo, paste(YoDi, formatC(WoDi, width=2, flag="0"), sep="-"))
+momo$wy[!(momo$WoDi %in% c(1,26))] <- NA
+momo <- subset(momo, nbc>0)
+
+
 swabPlot <- function(limweek=tgtweek, ymax=NA){
     allSwabs <- all_swabs
     allSwabs[-(1:match(limweek, weekSel)),] <- 0
@@ -207,6 +214,25 @@ methDeathAgePlot <- function(limweek=tgtweek){
     return(bpos)
 }
 
+momoPlot <- function() {
+    par(mar=c(7,4,2,10))
+    plot(0, type="n", bty="l", ylim=c(100,700), xlim=c(1,nrow(momo)), 
+	xaxt="n", ylab="Αριθμός θανάτων", xlab=NA)
+    mtext("Έτος - Αριθμός εβδομάδας", line=5, side=1)
+    points(y=momo$UPIb4, x=1:nrow(momo), col="yellow3", type="l", lwd=2)
+    points(y=momo$UPIb2, x=1:nrow(momo), col="orange2", type="l", lwd=2)
+    points(y=momo$Pnb, x=1:nrow(momo), col="firebrick2", type="l", lwd=2)
+    points(y=momo$nbc, x=1:nrow(momo), col="steelblue4", type="l", lwd=2)
+    axis(1, at=which(!is.na(momo$wy)), labels=momo$wy[!is.na(momo$wy)], las=2)
+    legend("topright", lwd=2, xpd=NA, bty="n", inset=c(-0.28,0.15), y.intersp=3, cex=0.8,
+	col=c("yellow3", "orange2", "firebrick2", "steelblue4"),
+	legend=c("+4 σταθερές αποκλίσεις\nαπό το αναμενόμενο",
+	    "+4 σταθερές αποκλίσεις\nαπό το αναμενόμενο",
+	    "Αναμενόμενος αριθμός\nθανάτων",
+	    "Παρατηρούμενος αριθμός\nθανάτων"))
+    return()
+}
+
 
 if (graphtype=="svg") {
   graph2 <- call("svg", filename = paste(path_output,"swabs.svg",sep=""), width=10, height=6, res=288)
@@ -215,6 +241,7 @@ if (graphtype=="svg") {
   graph4 <- call("svg", filename = paste(path_output,"deaths.svg",sep=""), width=10, height=6, res=288)
   graph4s <- call("svg", filename = paste(path_output,"deaths-short.svg",sep=""), width=10, height=13*10/28, res=288)
   graph5 <- call("svg", filename = paste(path_output,"methDeathAges.svg",sep=""), width=10, height=6, res=288)
+  graph6 <- call("svg", filename = paste(path_output,"momoPlot.svg",sep=""), width=10, height=6, res=288)
 } else if (graphtype=="jpg") {
   graph2 <- call("jpeg", filename = paste(path_output,"swabs.jpg",sep=""), width=2800, height=1680, res=288)
   graph3 <- call("jpeg", filename = paste(path_output,"meth.jpg",sep=""), width=2800, height=1680, res=288)
@@ -222,6 +249,7 @@ if (graphtype=="svg") {
   graph4 <- call("jpeg", filename = paste(path_output,"deaths.jpg",sep=""), width=2800, height=1680, res=288)
   graph4s <- call("jpeg", filename = paste(path_output,"deaths-short.jpg",sep=""), width=2800, height=1300, res=288)
   graph5 <- call("jpeg", filename = paste(path_output,"methDeathAges.jpg",sep=""), width=2800, height=1680, res=288)
+  graph6 <- call("jpeg", filename = paste(path_output,"momoPlot.jpg",sep=""), width=2800, height=1680, res=288)
 } else if (graphtype=="png") {
   graph2 <- call("png", filename = paste(path_output,"swabs.png",sep=""), width=2800, height=1680, res=288)
   graph3 <- call("png", filename = paste(path_output,"meth.png",sep=""), width=2800, height=1680, res=288)
@@ -229,6 +257,7 @@ if (graphtype=="svg") {
   graph4 <- call("png", filename = paste(path_output,"deaths.png",sep=""), width=2800, height=1680, res=288)
   graph4s <- call("png", filename = paste(path_output,"deaths-short.png",sep=""), width=2800, height=1300, res=288)
   graph5 <- call("png", filename = paste(path_output,"methDeathAges.png",sep=""), width=2800, height=1680, res=288)
+  graph6 <- call("png", filename = paste(path_output,"momoPlot.png",sep=""), width=2800, height=1680, res=288)
 } else if (graphtype=="tiff") {
   graph2 <- call("tiff", filename = paste(path_output,"swabs.tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
   graph3 <- call("tiff", filename = paste(path_output,"meth.tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
@@ -236,6 +265,7 @@ if (graphtype=="svg") {
   graph4 <- call("tiff", filename = paste(path_output,"deaths.tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
   graph4s <- call("tiff", filename = paste(path_output,"deaths-short.tif",sep=""), width=2800, height=1300, res=288, compression="lzw")
   graph5 <- call("tiff", filename = paste(path_output,"methDeathAges.tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
+  graph6 <- call("tiff", filename = paste(path_output,"momoPlot.tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
 }
 
 eval(graph2); swabPlot(); dev.off()
@@ -244,7 +274,7 @@ eval(graph3s); par(mar=c(3.5,4,1,2)); methPlot(); dev.off()
 eval(graph4); deathPlot(); dev.off()
 eval(graph4s); par(mar=c(3.5,4,1,2)); deathPlot(); dev.off()
 eval(graph5); methDeathAgePlot(); dev.off()
-
+eval(graph6); momoPlot(); dev.off()
 
 
 

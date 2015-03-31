@@ -1,7 +1,7 @@
 # Εφαρμογή στατιστικής επεξεργασίας των δεδομένων του συστήματος sentinel
 # v2.2 © 2015, Θοδωρής Λύτρας
 # Βασισμένο σε κώδικα SPSS, του Πάνου Κατερέλου και Σταύρου Πατρινού
-# Τελευταία αναθεώρηση: Φεβρουάριος 2015
+# Τελευταία αναθεώρηση: Μάρτιος 2015
 
 # **** Read/set global options ****
 
@@ -195,10 +195,10 @@ repeat {
 
 
 formats<-c()
-if (capabilities("cairo")) formats <- append(formats,c("ps","pdf","svg"))  # Η βιβλιοθήκη cairo δημιουργεί γραφήματα σε Postscript, PDF και SVG. Συνήθως είναι εγκατεστημένη μόνο στο Linux.
 if (capabilities("png")) formats <- append(formats,"png")
 if (capabilities("tiff")) formats <- append(formats,"tiff")
 if (capabilities("jpeg")) formats <- append(formats,"jpg")
+if (capabilities("cairo")) formats <- append(formats,c("ps","pdf","svg"))  # Η βιβλιοθήκη cairo δημιουργεί γραφήματα σε Postscript, PDF και SVG. Συνήθως είναι εγκατεστημένη μόνο στο Linux.
 if (length(formats)>0) {
   repeat {
     if(interactive()) {
