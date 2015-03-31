@@ -214,7 +214,7 @@ methDeathAgePlot <- function(limweek=tgtweek){
 }
 
 momoPlot <- function() {
-    par(mar=c(7,4,2,10))
+    par(mar=c(7,4,2,11))
     plot(0, type="n", bty="l", ylim=c(100,700), xlim=c(1,nrow(momo)), 
 	xaxt="n", ylab="Αριθμός θανάτων", xlab=NA)
     mtext("Έτος - Αριθμός εβδομάδας", line=5, side=1)
@@ -223,7 +223,7 @@ momoPlot <- function() {
     points(y=momo$Pnb, x=1:nrow(momo), col="firebrick2", type="l", lwd=2)
     points(y=momo$nbc, x=1:nrow(momo), col="steelblue4", type="l", lwd=2)
     axis(1, at=which(!is.na(momo$wy)), labels=momo$wy[!is.na(momo$wy)], las=2)
-    legend("topright", lwd=2, xpd=NA, bty="n", inset=c(-0.28,0.15), y.intersp=3, cex=0.8,
+    legend("topright", lwd=2, xpd=NA, bty="n", inset=c(-0.32,0.15), y.intersp=3, cex=0.8,
 	col=c("yellow3", "orange2", "firebrick2", "steelblue4"),
 	legend=c("+4 σταθερές αποκλίσεις\nαπό το αναμενόμενο",
 	    "+4 σταθερές αποκλίσεις\nαπό το αναμενόμενο",
