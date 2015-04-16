@@ -274,7 +274,7 @@ if (length(dates_to_check)>0) {
 sentinelBig$astikot <- ifelse(sentinelBig$monada=="KEYG", 2, 1) # Αγροτικός πληθυσμός(2) αν Κέντρα Υγείας, ειδάλλως αστικός πληθυσμός (1).
 sentinelBig$yearweek <- with(sentinelBig, etos*100 + ebdo)
 sentinelBig$oldeid <- ifelse(sentinelBig$eid %in% c(2,5,8), 2, 1) # Ειδικότητα με το παλιό σύστημα. 1 = Παθολόγοι, 2 = Παιδίατροι.
-sentinelBig$neweid <- c(1,2,1,3,3,3,1,2,1)[as.integer(sentinelBig$eid)] # Ειδικότητα με NEO σύστημα, όπου οι ιατροί των κέντρων υγείας αντιμετωπίζονται χωριστά (=3).
+sentinelBig$neweid <- c(3,1,2,1,3,3,3,1,2,1)[as.integer(sentinelBig$eid)+1] # Ειδικότητα με NEO σύστημα, όπου οι ιατροί των κέντρων υγείας αντιμετωπίζονται χωριστά (=3).
 
 # Έξτρα χακιά για τους ιατρούς του ΙΚΑ Αμαρουσίου
 ika_marousi_pa <- c("7a1228","7a1230","7a1229") # Οι κωδικοί των ιατρών του ΙΚΑ Αμαρουσίου (τους χειριζόμαστε διαφορετικά).

@@ -126,6 +126,10 @@ momo <- read.dta(paste(path_input, "momoOutput.dta", sep=""))
 momo$wy <- with(momo, paste(YoDi, formatC(WoDi, width=2, flag="0"), sep="-"))
 momo$wy[!(momo$WoDi %in% c(1,26))] <- NA
 momo <- subset(momo, nbc>0)
+if (is.null(momo$UPIb4)) {
+  warning("Column UPIb4 not found in MOMO output.")
+  momo$UPIb4 <- 2*momo$UPIb2 - momo$Pnb
+}
 
 
 swabPlot <- function(limweek=tgtweek, ymax=NA){
