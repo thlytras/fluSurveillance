@@ -88,7 +88,7 @@ if (length(formats)>0) {
 maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(tgtyear,"-12-31",sep="")))==53))>0, 53, 52)
 weekSel <- c(tgtyear*100+40:maxwk, (tgtyear+1)*100+1:20)
 
-all_swabs <- Reduce(`+`, lapply(c("BOREIA ELLADA", "EKPA", "NOTIA.ELLADA"), function(x){
+all_swabs <- Reduce(`+`, lapply(c("BOREIA", "EKPA", "NOTIA"), function(x){
     a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=4)
     a <- sapply(a[3:(nrow(a)-1), -1], function(y)as.integer(as.character(y)))
     rownames(a) <- a[,1]
@@ -231,7 +231,7 @@ momoPlot <- function() {
     legend("topright", lwd=2, xpd=NA, bty="n", inset=c(-0.32,0.15), y.intersp=3, cex=0.8,
 	col=c("yellow3", "orange2", "firebrick2", "steelblue4"),
 	legend=c("+4 σταθερές αποκλίσεις\nαπό το αναμενόμενο",
-	    "+4 σταθερές αποκλίσεις\nαπό το αναμενόμενο",
+	    "+2 σταθερές αποκλίσεις\nαπό το αναμενόμενο",
 	    "Αναμενόμενος αριθμός\nθανάτων",
 	    "Παρατηρούμενος αριθμός\nθανάτων"))
     return()
@@ -293,8 +293,8 @@ rb$summSwab <- cbind(nosok = rowSums(mapply(function(x,i){
 	a <- as.integer(as.character(unlist(a[a[,(4-i/2)]==as.character(tgtweek%%100),])))[-(1:(4-i/2))]
 	names(a) <- colnames(all_swabs)
 	a
-    }, c("BOREIA ELLADA", "EKPA", "NOTIA.ELLADA"), c(2,4,2)), na.rm=TRUE),
-    sentinel = Reduce(`+`, lapply(c("BOREIA ELLADA", "NOTIA.ELLADA"), function(x){
+    }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+    sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
 	rowSums(sapply(c(1,3), function(i) {
 	    a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=i)
 	    a <- as.integer(as.character(unlist(a[a[,3]==as.character(tgtweek%%100),])))[-(1:3)]
@@ -312,8 +312,8 @@ rb$summSwabTot <- cbind(nosok = rowSums(mapply(function(x,i){
 	a <- as.integer(as.character(unlist(a[nrow(a),])))[-(1:(4-i/2))]
 	names(a) <- colnames(all_swabs)
 	a
-    }, c("BOREIA ELLADA", "EKPA", "NOTIA.ELLADA"), c(2,4,2)), na.rm=TRUE),
-    sentinel = Reduce(`+`, lapply(c("BOREIA ELLADA", "NOTIA.ELLADA"), function(x){
+    }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+    sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
 	rowSums(sapply(c(1,3), function(i) {
 	    a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=i)
 	    a <- as.integer(as.character(unlist(a[nrow(a),])))[-(1:3)]

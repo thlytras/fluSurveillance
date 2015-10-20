@@ -88,7 +88,7 @@ if (length(formats)>0) {
 maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(tgtyear,"-12-31",sep="")))==53))>0, 53, 52)
 weekSel <- c(tgtyear*100+40:maxwk, (tgtyear+1)*100+1:20)
 
-all_swabs <- Reduce(`+`, lapply(c("BOREIA ELLADA", "EKPA", "NOTIA.ELLADA"), function(x){
+all_swabs <- Reduce(`+`, lapply(c("BOREIA", "EKPA", "NOTIA"), function(x){
     a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
     a <- subset(readWorksheet(a, sheet="TOTAL", startRow=3)[,-1], !is.na(Week))
     rownames(a) <- a$Week
@@ -230,7 +230,7 @@ momoPlot <- function() {
     legend("topright", lwd=2, xpd=NA, bty="n", inset=c(-0.32,0.15), y.intersp=3, cex=0.8,
 	col=c("yellow3", "orange2", "firebrick2", "steelblue4"),
 	legend=c("+4 σταθερές αποκλίσεις\nαπό το αναμενόμενο",
-	    "+4 σταθερές αποκλίσεις\nαπό το αναμενόμενο",
+	    "+2 σταθερές αποκλίσεις\nαπό το αναμενόμενο",
 	    "Αναμενόμενος αριθμός\nθανάτων",
 	    "Παρατηρούμενος αριθμός\nθανάτων"))
     return()
@@ -290,8 +290,8 @@ rb$seasEndLab <- paste(20, "/", tgtyear+1, " (",
 rb$summSwab <- cbind(nosok = rowSums(mapply(function(x,i){
 	a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
 	unlist(subset(readWorksheet(a, sheet=i, startRow=3), Week==tgtweek%%100))[-(1:(4-i/2))]
-    }, c("BOREIA ELLADA", "EKPA", "NOTIA.ELLADA"), c(2,4,2)), na.rm=TRUE),
-    sentinel = Reduce(`+`, lapply(c("BOREIA ELLADA", "NOTIA.ELLADA"), function(x){
+    }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+    sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
 	a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
 	rowSums(sapply(c(1,3), function(i) {
 	    res <- readWorksheet(a, sheet=i, startRow=3)
@@ -307,8 +307,8 @@ rb$summSwab["Total",] <- colSums(rb$summSwab[2:4,])
 rb$summSwabTot <- cbind(nosok = rowSums(mapply(function(x,i){
 	a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
 	unlist(subset(readWorksheet(a, sheet=i, startRow=3), is.na(Week)))[-(1:(4-i/2))]
-    }, c("BOREIA ELLADA", "EKPA", "NOTIA.ELLADA"), c(2,4,2)), na.rm=TRUE),
-    sentinel = Reduce(`+`, lapply(c("BOREIA ELLADA", "NOTIA.ELLADA"), function(x){
+    }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+    sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
 	a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
 	rowSums(sapply(c(1,3), function(i) {
 	    res <- readWorksheet(a, sheet=i, startRow=3)

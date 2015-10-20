@@ -626,14 +626,18 @@ if (is.na(graphtype)) {
   cat("ΔΕΝ δημιουργήθηκαν γραφήματα!\nΑυτή η εγκατάσταση του R δεν έχει δυνατότητα εγγραφής σε κανένα γραφικό file format...\n")
 } else {
   eval(graph1)
-  ytp <- c(tgtyear-2, tgtyear-1,tgtyear)
+  #ytp <- c(tgtyear-2, tgtyear-1,tgtyear)
+  ytp <- c(tgtyear-1, tgtyear) # Προσωρινή τροποποίηση για φέτος (θα δείχνουμε μόνο 2 χρονιές)
   if (sum(ytp>=2014)>0 & sum(ytp>=2014)<length(ytp)) {
     sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), ci=ciInPlot,
       yaxis2=ytp[ytp<2014], mult=1/5, 
-      ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Νέο σύστημα επιτήρησης, 2014-2015)",
-      ylab2="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Παλιό σύστημα επιτήρησης, 2012-2013, 2013-2014)")
+      ylab=paste("Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Νέο σύστημα επιτήρησης, ",
+        paste(paste(ytp[ytp>=2014],"-",ytp[ytp>=2014]+1,sep=""), collapse=", "), ")", sep=""),
+      ylab2=paste("Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Παλιό σύστημα επιτήρησης, ",
+        paste(paste(ytp[ytp<2014],"-",ytp[ytp<2014]+1,sep=""), collapse=", "), ")", sep=""))
   } else {
-    sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), ci=ciInPlot)
+    #sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), ci=ciInPlot)
+    sentinel_graph(ytp, col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot) # Προσωρινή τροποποίηση για φέτος (θα δείχνουμε μόνο 2 χρονιές)
   }
   dev.off()
   
