@@ -1,7 +1,7 @@
 # Εφαρμογή στατιστικής επεξεργασίας των δεδομένων του συστήματος sentinel
-# v2.2 © 2015, Θοδωρής Λύτρας
+# v2.3 © 2015, Θοδωρής Λύτρας
 # Βασισμένο σε κώδικα SPSS, του Πάνου Κατερέλου και Σταύρου Πατρινού
-# Τελευταία αναθεώρηση: Μάρτιος 2015
+# Τελευταία αναθεώρηση: Οκτώβριος 2015
 
 # **** Read/set global options ****
 
@@ -266,6 +266,8 @@ required_fields <- c("nom", "eid", "monada", "etos", "ebdo", "totvis", "gritot",
 if (FALSE %in% (required_fields %in% names(sentinelBig))) stop("Το αρχείο sent14.rec δεν περιέχει τα σωστά πεδία! Αδυνατώ να συνεχίσω...")   # Ανίχνευση λαθών
 
 dates_to_check <- with(sentinelBig, which((hmekat < arxebd+6) | (as.POSIXlt(arxebd)$wday!=1) | ((telebd-arxebd)>6) | ((telebd-arxebd)<0) | (is.na(arxebd) | is.na(telebd))))
+dates_to_check <- sentinelBig$aa[dates_to_check[dates_to_check!=nrow(sentinelBig)]]
+
 if (length(dates_to_check)>0) {
   cat("\nΠΡΟΣΟΧΗ! Προβλήματα στις ημερομηνίες ορισμένων δηλώσεων.\nΠαρακαλώ ελέγξτε τις παρακάτω ημερομηνίες:\n")
   print(dates_to_check)

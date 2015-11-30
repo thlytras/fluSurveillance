@@ -8,6 +8,7 @@ path_output = "./output/"
 isoweek <- function(x, type="week") {
   alts=c("week","year","both_text","both_num")
   if(!(type %in% alts)) stop("Unknown isoweek type requested!")
+  if (length(x)==0) return(x)
   x.date<-as.Date(x)
   x.weekday<-as.integer(format(x.date,"%w"))
   x.weekday[x.weekday==0]=7
@@ -103,19 +104,21 @@ all_swabs[,"Total"] <- all_swabs[,"Positive"] + all_swabs[,"Negative"] + all_swa
 methExcel <- loadWorkbook(paste(path_input, "ICU_Full.xls", sep=""))
 meth <- readWorksheet(methExcel, sheet=2)
 outOfMeth <- readWorksheet(methExcel, sheet=3)
-names(meth)[c(8, 22, 13, 28, 29, 4, 5)] <- 
+names(meth)[c(8, 23, 14, 29, 30, 4, 5)] <- 
 	c("flutype", "ICUadmDate", "hospAdmDate", "outcome", "deathdate", "sex", "age")
 meth$yearweek <- isoweek(as.Date(meth$ICUadmDate)+1, type="both_num")
 meth$yearweekf <- factor(meth$yearweek, levels=weekSel)
 meth$flutypef <- factor(meth$flutype, levels=c("B", "A(H3N2)", "A(H1N1)pdm09", "A", "χωρίς τύπο"))
 meth$flutypef[is.na(meth$flutypef)] <- "χωρίς τύπο"
 
-names(outOfMeth)[c(8, 13, 26, 27, 4, 5)] <- c("flutype", "hospAdmDate", "outcome", "deathdate", "sex", "age")
+names(outOfMeth)[c(8, 14, 27, 28, 4, 5)] <- c("flutype", "hospAdmDate", "outcome", "deathdate", "sex", "age")
 outOfMeth$flutypef <- factor(outOfMeth$flutype, levels=c("B", "A(H3N2)", "A(H1N1)pdm09", "A", "χωρίς τύπο"))
 outOfMeth$flutypef[is.na(outOfMeth$flutypef)] <- "χωρίς τύπο"
 outOfMeth$yearweek <- isoweek(as.Date(outOfMeth$hospAdmDate)+1, type="both_num")
-meth$meth <- TRUE; outOfMeth$meth <- FALSE
-totDeaths <- rbind(subset(meth, outcome=="Θάνατος")[,c("flutypef", "deathdate", "meth", "sex", "age", "HRCG")], 
+meth$meth <- rep(TRUE, nrow(meth))  # Safeguard against nrow(meth)==0
+outOfMeth$meth <- rep(FALSE, nrow(outOfMeth))    # Safeguard against nrow(outOfMeth)==0
+totDeaths <- rbind(
+        subset(meth, outcome=="Θάνατος")[,c("flutypef", "deathdate", "meth", "sex", "age", "HRCG")], 
 	subset(outOfMeth, outcome=="Θάνατος")[,c("flutypef", "deathdate", "meth", "sex", "age", "HRCG")])
 totDeaths$yearweek <- isoweek(as.Date(totDeaths$deathdate)+1, type="both_num")
 totDeaths$yearweekf <- factor(totDeaths$yearweek, levels=weekSel)
@@ -179,11 +182,14 @@ methPlot <- function(limweek=tgtweek){
 
 deathPlot <- function(limweek=tgtweek){
     swCol <- c("dodgerblue3", "sandybrown", "red3", "orangered", "lightpink3", "darkgrey")
-    bylim <- max(colSums(with(subset(totDeaths, yearweek<=limweek), table(flutypef, yearweek))))
-    bylim <- ifelse(bylim<=10, 20, 10+2*(bylim-10))
-    bpos <- barplot(with(subset(totDeaths, yearweek<=limweek), table(flutypef, yearweekf)), border=NA, col=c(swCol[1:4], "darkslategrey"), 
-      axisnames=F, axes=F, ylab="Αριθμός κρουσμάτων", font.lab=2, cex.lab=0.9,
-      ylim=c(0, bylim))
+    suppressWarnings({
+        bylim <- max(colSums(with(subset(totDeaths, yearweek<=limweek), table(flutypef, yearweek))))
+        bylim <- ifelse(bylim<=10, 20, 10+2*(bylim-10))
+        bpos <- barplot(with(subset(totDeaths, yearweek<=limweek), table(flutypef, yearweekf)), 
+            border=NA, col=c(swCol[1:4], "darkslategrey"), 
+            axisnames=F, axes=F, ylab="Αριθμός κρουσμάτων", font.lab=2, cex.lab=0.9,
+            ylim=c(0, bylim))
+    })
     abline(h=seq(0,bylim,2), col="lightgrey", lwd=0.5)
     abline(h=0)
     bpos <- barplot(with(subset(totDeaths, yearweek<=limweek), table(flutypef, yearweekf)), border=NA, col=c(swCol[1:4], "darkslategrey"), 
