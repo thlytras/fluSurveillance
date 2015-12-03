@@ -273,7 +273,7 @@ if (length(dates_to_check)>0) {
   print(dates_to_check)
 }
 
-sentinelBig$astikot <- ifelse(sentinelBig$monada=="KEYG", 2, 1) # Αγροτικός πληθυσμός(2) αν Κέντρα Υγείας, ειδάλλως αστικός πληθυσμός (1).
+sentinelBig$astikot <- ifelse(sentinelBig$monada=="KEYG" | sentinelBig$monada=="PIAT", 2, 1) # Αγροτικός πληθυσμός(2) αν Κέντρα Υγείας, ειδάλλως αστικός πληθυσμός (1).
 sentinelBig$yearweek <- with(sentinelBig, etos*100 + ebdo)
 sentinelBig$oldeid <- ifelse(sentinelBig$eid %in% c(2,5,8), 2, 1) # Ειδικότητα με το παλιό σύστημα. 1 = Παθολόγοι, 2 = Παιδίατροι.
 sentinelBig$neweid <- c(3,1,2,1,3,3,3,1,2,1)[as.integer(sentinelBig$eid)+1] # Ειδικότητα με NEO σύστημα, όπου οι ιατροί των κέντρων υγείας αντιμετωπίζονται χωριστά (=3).
@@ -295,9 +295,10 @@ sentinelBig <- transform(sentinelBig, nomokat=NULL, d_diam=NULL, didia_po=NULL, 
 if (opts$noDelayed) sentinelBig <- subset(sentinelBig, isoweek(hmekat-as.integer(opts$repLimDay), "both_num") <= yearweek)
 
 # Υπολογίζουμε την πληρότητα της δήλωσης (αναλυτικά ΜΟΝΟ για το νέο sentinel)
+olemon <- c("IDIO"="IDIO", "KEYG"="KEYG", "PIAT"="KEYG", "PEDY"="PEDY") # Matrix to merge PIAT into KEDY
 if(tgtweek>=201440) {
-  plirotita_eidikotita <- with(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek)), table(factor(monada, levels=c("IDIO", "KEYG", "PEDY")), factor(oldeid, levels=1:2)))
-  plirotita_nuts <- with(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek)), table(factor(monada, levels=c("IDIO", "KEYG", "PEDY")), factor(nuts, levels=1:4)))  
+  plirotita_eidikotita <- with(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek)), table(factor(olemon[monada]), factor(oldeid, levels=1:2)))
+  plirotita_nuts <- with(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek)), table(factor(olemon[monada]), factor(nuts, levels=1:4)))  
   msg_marousi <- c(
       if (sum(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek))$codeiat %in% ika_marousi_pa)>0) "Έχει δηλώσει παθολόγος, " else
 	    "ΔΕΝ έχει δηλώσει παθολόγος, ",
@@ -491,8 +492,8 @@ sentinelGraphBySystem <- function(year, ylab="Κρούσματα γριπώδο�
   astAggr2$gri_w_var[is.na(astAggr2$gri_w_var)] = 0
   astAggr3 <- aggregate(astAggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=astAggr2$yearweek, astikot=astAggr2$astikot), sum, na.rm=TRUE)
   astAggr3 <- subset(astAggr3, yearweek>200427 & yearweek<210000)
-  spAggr1 <- aggregate(sentinelBig[,c("etos", "ebdo", "ast_p_nu", "agr_p_nu", "as_p_nu1", "ag_p_nu1", "as_p_nu2", "ag_p_nu2")], by=list(monada=sentinelBig$monada, astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), mean, na.rm=TRUE)
-  spAggr2 <- aggregate(sentinelBig[,c("totvis", "gritot")], by=list(monada=sentinelBig$monada, astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), sum, na.rm=TRUE)
+  spAggr1 <- aggregate(sentinelBig[,c("etos", "ebdo", "ast_p_nu", "agr_p_nu", "as_p_nu1", "ag_p_nu1", "as_p_nu2", "ag_p_nu2")], by=list(monada=olemon[sentinelBig$monada], astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), mean, na.rm=TRUE)
+  spAggr2 <- aggregate(sentinelBig[,c("totvis", "gritot")], by=list(monada=olemon[sentinelBig$monada], astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), sum, na.rm=TRUE)
   spAggr2$gritot[is.na(spAggr2$gritot)] = 0
   spAggr2$gri <- (spAggr2$gritot/spAggr2$totvis)*1000
   spAggr2$gri[is.na(spAggr2$gri)] = 0
