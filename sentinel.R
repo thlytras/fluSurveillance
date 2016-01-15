@@ -297,8 +297,8 @@ if (opts$noDelayed) sentinelBig <- subset(sentinelBig, isoweek(hmekat-as.integer
 # Υπολογίζουμε την πληρότητα της δήλωσης (αναλυτικά ΜΟΝΟ για το νέο sentinel)
 olemon <- c("IDIO"="IDIO", "KEYG"="KEYG", "PIAT"="KEYG", "PEDY"="PEDY") # Matrix to merge PIAT into KEDY
 if(tgtweek>=201440) {
-  plirotita_eidikotita <- with(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek)), table(factor(olemon[monada]), factor(oldeid, levels=1:2)))
-  plirotita_nuts <- with(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek)), table(factor(olemon[monada]), factor(nuts, levels=1:4)))  
+  plirotita_eidikotita <- with(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek)), table(factor(olemon[monada], levels=c("IDIO", "KEYG", "PEDY")), factor(oldeid, levels=1:2)))
+  plirotita_nuts <- with(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek)), table(factor(olemon[monada], levels=c("IDIO", "KEYG", "PEDY")), factor(nuts, levels=1:4)))  
   msg_marousi <- c(
       if (sum(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek))$codeiat %in% ika_marousi_pa)>0) "Έχει δηλώσει παθολόγος, " else
 	    "ΔΕΝ έχει δηλώσει παθολόγος, ",
