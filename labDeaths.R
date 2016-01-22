@@ -1,4 +1,7 @@
-library(XLConnect)
+# Choose which package to use to read Excel files
+if (!exists("xlPack")) xlPack <- c("XLConnect", "gdata")[1]
+
+library(xlPack, character.only=TRUE)
 library(foreign)
 
 path_input = "./data/"
@@ -89,38 +92,98 @@ if (length(formats)>0) {
 maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(tgtyear,"-12-31",sep="")))==53))>0, 53, 52)
 weekSel <- c(tgtyear*100+40:maxwk, (tgtyear+1)*100+1:20)
 
-all_swabs <- Reduce(`+`, lapply(c("BOREIA", "EKPA", "NOTIA"), function(x){
-    a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
-    a <- subset(readWorksheet(a, sheet="TOTAL", startRow=3)[,-1], !is.na(Week))
-    rownames(a) <- a$Week
-    as.matrix(a[,-1])
-}))
+if (xlPack=="XLConnect") {
+    all_swabs <- Reduce(`+`, lapply(c("BOREIA", "EKPA", "NOTIA"), function(x){
+        a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
+        a <- subset(readWorksheet(a, sheet="TOTAL", startRow=3)[,-1], !is.na(Week))
+        rownames(a) <- a$Week
+        as.matrix(a[,-1])
+    }))
+} else {
+    all_swabs <- Reduce(`+`, lapply(c("BOREIA", "EKPA", "NOTIA"), function(x){
+        a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=4)
+        a <- sapply(a[3:(nrow(a)-1), -1], function(y)as.integer(as.character(y)))
+        rownames(a) <- a[,1]
+        colnames(a) <- c("Week", "Total", "Positive", "Negative", "Pending", 
+                            "Α", "Β", "C", "A.H3N2.", "A.H1N1.pdm09", "Other", "Pending.1")
+        a[,-1]
+    }))
+}
 all_swabs[,"Α"] <- all_swabs[,"A.H3N2."] + all_swabs[,"A.H1N1.pdm09"] + all_swabs[,"Other"] + all_swabs[,"Pending.1"]
 all_swabs[,"Positive"] <- all_swabs[,"Α"] + all_swabs[,"Β"] + all_swabs[,"C"]
 all_swabs[,"Total"] <- all_swabs[,"Positive"] + all_swabs[,"Negative"] + all_swabs[,"Pending"]
 
+if (xlPack=="XLConnect") {
+    methExcel <- loadWorkbook(paste(path_input, "ICU_Full.xls", sep=""))
+    meth <- readWorksheet(methExcel, sheet=2)
+    outOfMeth <- readWorksheet(methExcel, sheet=3)
+    names(meth)[c(8, 23, 14, 29, 30, 4, 5)] <- 
+            c("flutype", "ICUadmDate", "hospAdmDate", "outcome", "deathdate", "sex", "age")
+    meth$ICUadmDateC <- as.Date(meth$ICUadmDate)+1
+    meth$outMethDateC <- as.Date(meth$Έξοδος.ΜΕΘ)+1
+} else {
+    meth <- read.xls(paste(path_input, "ICU_Full.xls", sep=""), sheet=2)
+    outOfMeth <- read.xls(paste(path_input, "ICU_Full.xls", sep=""), sheet=3)
+    names(meth)[c(8, 23, 14, 29, 30, 4, 5)] <- 
+            c("flutype", "ICUadmDate", "hospAdmDate", "outcome", "deathdate", "sex", "age")
+    meth$ICUadmDateC <- as.Date(as.character(meth$ICUadmDate), format="%d/%m/%y")
+    meth$outMethDateC <- as.Date(as.character(meth$Έξοδος.ΜΕΘ), format="%d/%m/%y")
+}
+
+checkDatesOutMeth <- with(meth, which(outcome!="Νοσηλεύται στη ΜΕΘ" & is.na(outMethDateC)))
+if (length(checkDatesOutMeth)>0) {
+    warning(paste("Στους ακόλουθους ασθενείς δεν υπάρχει ημερομηνία εξόδου από τη ΜΕΘ, ενώ θα έπρεπε:\n",
+        paste(sapply(checkDatesOutMeth, function(i) 
+            paste(meth$Α.Α[i], meth$Επώνυμο[i], meth$Όνομα[i], "\n", collapse=" ")), collapse=""),
+        sep="", collapse=""), call.=FALSE)
+}
+
+checkDatesDeath <- with(meth, which(outcome=="Θάνατος" & is.na(deathdate)))
+if (length(checkDatesDeath)>0) {
+    warning(paste("Στους ακόλουθους ασθενείς δεν υπάρχει ημερομηνία θανάτου, ενώ θα έπρεπε:\n",
+        paste(sapply(checkDatesDeath, function(i) 
+            paste(meth$Α.Α[i], meth$Επώνυμο[i], meth$Όνομα[i], "\n", collapse=" ")), collapse=""),
+        sep="", collapse=""), call.=FALSE)
+}
 
 
-methExcel <- loadWorkbook(paste(path_input, "ICU_Full.xls", sep=""))
-meth <- readWorksheet(methExcel, sheet=2)
-outOfMeth <- readWorksheet(methExcel, sheet=3)
-names(meth)[c(8, 23, 14, 29, 30, 4, 5)] <- 
-	c("flutype", "ICUadmDate", "hospAdmDate", "outcome", "deathdate", "sex", "age")
-meth$yearweek <- isoweek(as.Date(meth$ICUadmDate)+1, type="both_num")
+meth$yearweek <- isoweek(meth$ICUadmDateC, type="both_num")
 meth$yearweekf <- factor(meth$yearweek, levels=weekSel)
 meth$flutypef <- factor(meth$flutype, levels=c("B", "A(H3N2)", "A(H1N1)pdm09", "A", "χωρίς τύπο"))
+if (sum(is.na(meth$flutypef))>0) {
+    warning(paste("Στους ακόλουθους ασθενείς ΜΕΘ δεν έχει γραφτεί σωστά ο ιός γρίπης:\n",
+        paste(sapply(which(is.na(meth$flutypef)), function(i) 
+            paste(meth$Α.Α[i], meth$Επώνυμο[i], meth$Όνομα[i], "\n", collapse=" ")), collapse=""),
+        sep="", collapse=""), call.=FALSE)
+}
 meth$flutypef[is.na(meth$flutypef)] <- "χωρίς τύπο"
 
 names(outOfMeth)[c(8, 14, 27, 28, 4, 5)] <- c("flutype", "hospAdmDate", "outcome", "deathdate", "sex", "age")
 outOfMeth$flutypef <- factor(outOfMeth$flutype, levels=c("B", "A(H3N2)", "A(H1N1)pdm09", "A", "χωρίς τύπο"))
+if (sum(is.na(outOfMeth$flutypef))>0) {
+    warning(paste("Στους ακόλουθους ασθενείς εκτός ΜΕΘ δεν έχει γραφτεί σωστά ο ιός γρίπης:\n",
+        paste(sapply(which(is.na(outOfMeth$flutypef)), function(i) 
+            paste(outOfMeth$Α.Α[i], outOfMeth$Επώνυμο[i], outOfMeth$Όνομα[i], "\n", collapse=" ")), collapse=""),
+        sep="", collapse=""), call.=FALSE)
+}
 outOfMeth$flutypef[is.na(outOfMeth$flutypef)] <- "χωρίς τύπο"
-outOfMeth$yearweek <- isoweek(as.Date(outOfMeth$hospAdmDate)+1, type="both_num")
+outOfMeth$hospAdmDateC <- if (xlPack=="XLConnect") {
+        as.Date(outOfMeth$hospAdmDate)+1
+    } else {
+        as.Date(as.character(outOfMeth$hospAdmDate), format="%d/%m/%y")
+    }
+outOfMeth$yearweek <- isoweek(outOfMeth$hospAdmDateC, type="both_num")
 meth$meth <- rep(TRUE, nrow(meth))  # Safeguard against nrow(meth)==0
 outOfMeth$meth <- rep(FALSE, nrow(outOfMeth))    # Safeguard against nrow(outOfMeth)==0
 totDeaths <- rbind(
         subset(meth, outcome=="Θάνατος")[,c("flutypef", "deathdate", "meth", "sex", "age", "HRCG")], 
 	subset(outOfMeth, outcome=="Θάνατος")[,c("flutypef", "deathdate", "meth", "sex", "age", "HRCG")])
-totDeaths$yearweek <- isoweek(as.Date(totDeaths$deathdate)+1, type="both_num")
+totDeaths$deathdateC <- if (xlPack=="XLConnect") {
+        as.Date(totDeaths$deathdate)+1
+    } else {
+        as.Date(as.character(totDeaths$deathdate), format="%d/%m/%y")
+    }
+totDeaths$yearweek <- isoweek(totDeaths$deathdateC, type="both_num")
 totDeaths$yearweekf <- factor(totDeaths$yearweek, levels=weekSel)
 
 
@@ -293,35 +356,69 @@ rb$wklab <- paste(tgtweek %% 100, "/", tgtweek %/%100, " (",
 rb$seasEndLab <- paste(20, "/", tgtyear+1, " (", 
 	formatDate(c(isoweekStart(tgtyear*100 + 120), isoweekStart(tgtyear*100 + 120) + 6)), ")", sep="")
 
-rb$summSwab <- cbind(nosok = rowSums(mapply(function(x,i){
-	a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
-	unlist(subset(readWorksheet(a, sheet=i, startRow=3), Week==tgtweek%%100))[-(1:(4-i/2))]
-    }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
-    sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
-	a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
-	rowSums(sapply(c(1,3), function(i) {
-	    res <- readWorksheet(a, sheet=i, startRow=3)
-	    names(res) <- toupper(names(res))
-	    unlist(subset(res, WEEK==tgtweek%%100))[-(1:3)]
-	}), na.rm=TRUE)
-    })))
+if (xlPack=="XLConnect") {
+    rb$summSwab <- cbind(nosok = rowSums(mapply(function(x,i){
+            a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
+            unlist(subset(readWorksheet(a, sheet=i, startRow=3), Week==tgtweek%%100))[-(1:(4-i/2))]
+        }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+        sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
+            a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
+            rowSums(sapply(c(1,3), function(i) {
+                res <- readWorksheet(a, sheet=i, startRow=3)
+                names(res) <- toupper(names(res))
+                unlist(subset(res, WEEK==tgtweek%%100))[-(1:3)]
+            }), na.rm=TRUE)
+        })))
+} else {
+    rb$summSwab <- cbind(nosok = rowSums(mapply(function(x,i){
+            a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=i)
+            a <- as.integer(as.character(unlist(a[a[,(4-i/2)]==as.character(tgtweek%%100),])))[-(1:(4-i/2))]
+            names(a) <- colnames(all_swabs)
+            a
+        }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+        sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
+            rowSums(sapply(c(1,3), function(i) {
+                a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=i)
+                a <- as.integer(as.character(unlist(a[a[,3]==as.character(tgtweek%%100),])))[-(1:3)]
+                names(a) <- colnames(all_swabs)
+                a
+            }), na.rm=TRUE)
+        })))
+}
 rb$summSwab["Α",] <- colSums(rb$summSwab[8:11,])
 rb$summSwab["Positive",] <- colSums(rb$summSwab[5:7,])
 rb$summSwab["Total",] <- colSums(rb$summSwab[2:4,])
 
 
-rb$summSwabTot <- cbind(nosok = rowSums(mapply(function(x,i){
-	a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
-	unlist(subset(readWorksheet(a, sheet=i, startRow=3), is.na(Week)))[-(1:(4-i/2))]
-    }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
-    sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
-	a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
-	rowSums(sapply(c(1,3), function(i) {
-	    res <- readWorksheet(a, sheet=i, startRow=3)
-	    names(res) <- toupper(names(res))
-	    unlist(subset(res, is.na(WEEK)))[-(1:3)]
-	}), na.rm=TRUE)
-    })))
+if (xlPack=="XLConnect") {
+    rb$summSwabTot <- cbind(nosok = rowSums(mapply(function(x,i){
+            a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
+            unlist(subset(readWorksheet(a, sheet=i, startRow=3), is.na(Week)))[-(1:(4-i/2))]
+        }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+        sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
+            a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
+            rowSums(sapply(c(1,3), function(i) {
+                res <- readWorksheet(a, sheet=i, startRow=3)
+                names(res) <- toupper(names(res))
+                unlist(subset(res, is.na(WEEK)))[-(1:3)]
+            }), na.rm=TRUE)
+        })))
+} else {
+    rb$summSwabTot <- cbind(nosok = rowSums(mapply(function(x,i){
+            a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=i)
+            a <- as.integer(as.character(unlist(a[nrow(a),])))[-(1:(4-i/2))]
+            names(a) <- colnames(all_swabs)
+            a
+        }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+        sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
+            rowSums(sapply(c(1,3), function(i) {
+                a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=i)
+                a <- as.integer(as.character(unlist(a[nrow(a),])))[-(1:3)]
+                names(a) <- colnames(all_swabs)
+                a
+            }), na.rm=TRUE)
+        })))
+}
 rb$summSwabTot["Α",] <- colSums(rb$summSwabTot[8:11,])
 rb$summSwabTot["Positive",] <- colSums(rb$summSwabTot[5:7,])
 rb$summSwabTot["Total",] <- colSums(rb$summSwabTot[2:4,])
