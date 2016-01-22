@@ -7,9 +7,10 @@ file.remove('.Rprofile');
 library(utils); library(stats); 
 library(graphics); library(grDevices); 
 
-source('labDeaths.R'); 
+source('include.R');
+showMeWarnings(source('labDeaths.R')); 
 
-cat('\nPress ENTER to close window...\n\n'); readline();
+cat('\n\nPress ENTER to close window...\n\n'); readline();
 q(save='no')}" > .Rprofile
 R
 rm .Rprofile

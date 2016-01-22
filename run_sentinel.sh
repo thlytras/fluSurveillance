@@ -7,7 +7,8 @@ file.remove('.Rprofile');
 library(utils); library(stats); 
 library(graphics); library(grDevices); 
 
-source('sentinel.R'); 
+source('include.R');
+showMeWarnings(source('sentinel.R')); 
 
 cat('\nPress ENTER to close window...\n\n'); readline();
 q(save='no')}" > .Rprofile
