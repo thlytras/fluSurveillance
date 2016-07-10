@@ -179,36 +179,96 @@ doc_rep <- with(big,table(yearweek,eid))
 
 cat("\nΕξαγωγή ILI rate...\n")
 
-aggr1 <- aggregate(big[,c("etos", "ebdo", "ast_p_nu", "agr_p_nu", "as_p_nu1", "ag_p_nu1", "as_p_nu2", "ag_p_nu2")], by=list(astikot=big$astikot, nuts=big$nuts, yearweek=big$yearweek), mean, na.rm=TRUE)
+if (opts$oldAlgo) {
 
-aggr2 <- aggregate(big[,c("totvis", "gritot")], by=list(astikot=big$astikot, nuts=big$nuts, yearweek=big$yearweek), sum, na.rm=TRUE)
+    aggr1 <- aggregate(big[,c("etos", "ebdo", "ast_p_nu", "agr_p_nu", "as_p_nu1", "ag_p_nu1", "as_p_nu2", "ag_p_nu2")], by=list(astikot=big$astikot, nuts=big$nuts, yearweek=big$yearweek), mean, na.rm=TRUE)
 
-aggr2$gritot[is.na(aggr2$gritot)] = 0
-aggr2$gri <- (aggr2$gritot/aggr2$totvis)*1000
-aggr2$gri[is.na(aggr2$gri)] = 0
+    aggr2 <- aggregate(big[,c("totvis", "gritot")], by=list(astikot=big$astikot, nuts=big$nuts, yearweek=big$yearweek), sum, na.rm=TRUE)
 
-aggr2$gri_w <- ifelse(aggr2$astikot==1,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$ast_p_nu,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$agr_p_nu)
-aggr2$gri_w[is.na(aggr2$gri_w)] = 0
+    aggr2$gritot[is.na(aggr2$gritot)] = 0
+    aggr2$gri <- (aggr2$gritot/aggr2$totvis)*1000
+    aggr2$gri[is.na(aggr2$gri)] = 0
 
-aggr2$gri_w_var <- ifelse(aggr2$astikot==1,
-  ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$ast_p_nu)^2,
-  ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$agr_p_nu)^2)
-aggr2$gri_w_var[is.na(aggr2$gri_w_var)] = 0
+    aggr2$gri_w <- ifelse(aggr2$astikot==1,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$ast_p_nu,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$agr_p_nu)
+    aggr2$gri_w[is.na(aggr2$gri_w)] = 0
 
-aggr2$gri_w1 <- ifelse(aggr2$astikot==1,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu1,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu1)
-aggr2$gri_w1[is.na(aggr2$gri_w1)] = 0
+    aggr2$gri_w_var <- ifelse(aggr2$astikot==1,
+    ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$ast_p_nu)^2,
+    ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$agr_p_nu)^2)
+    aggr2$gri_w_var[is.na(aggr2$gri_w_var)] = 0
 
-aggr2$gri_w2 <- ifelse(aggr2$astikot==1,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu2,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu2)
-aggr2$gri_w2[is.na(aggr2$gri_w2)] = 0
+    aggr2$gri_w1 <- ifelse(aggr2$astikot==1,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu1,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu1)
+    aggr2$gri_w1[is.na(aggr2$gri_w1)] = 0
+
+    aggr2$gri_w2 <- ifelse(aggr2$astikot==1,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu2,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu2)
+    aggr2$gri_w2[is.na(aggr2$gri_w2)] = 0
 
 
-aggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
+    aggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
+    
+} else {
+
+  sntBigOld <- big
+  if (opts$weeksRecalc>0) {
+    sntBigOld <- subset(sntBigOld, yearweek >= isoweek(isoweekStart(tgtweek)-opts$weeksRecalc*7, "both_num"))
+  }
+
+  # Adjust records (if missing ILI cases replace with 0)
+  sntBigOld$gritot[is.na(sntBigOld$gritot)] <- 0   # If ILI cases missing, set to zero
+  sntBigOld <- subset(sntBigOld, !is.na(totvis) & totvis>0)   # Discard if total visits zero or missing
+
+  # Aggregate ILI cases & total visits per stratum and per yearweek
+  aggr1a <- aggregate(sntBigOld[,c("totvis", "gritot")], by=list(astikot=sntBigOld$astikot, nuts=sntBigOld$nuts, yearweek=sntBigOld$yearweek), sum, na.rm=TRUE)
+
+  suppressWarnings({   # Don't echo glmer warnings
+    aggr1b <- by(sntBigOld, 
+      list(astikot=sntBigOld$astikot, nuts=sntBigOld$nuts, yearweek=sntBigOld$yearweek), 
+        function(x) {
+          last_one_threw_a_warning <- 0
+          wHandler <- function(w) { last_one_threw_a_warning <<- 1 }
+          if (sum(x$gritot)==0) {
+            gri <- 0; gri.sd <- 0
+          } else {
+            if (nrow(x)==1) {
+              m1 <- glm(gritot ~ 1, data=x, offset=log(totvis), family="poisson")
+              od <- sum(m1$weights * m1$residuals^2)/m1$df.r
+              gri <- unname(exp(coef(m1))*1000)
+              gri.sd <- unname(sqrt(vcov(m1)))
+            } else {
+              mm <- withCallingHandlers(
+                glmer(gritot ~ 1 + (1|codeiat), data=x, offset=log(totvis), family="poisson"), 
+                  warning = wHandler)
+              gri <- unname(1000*exp(fixef(mm)))
+              gri.sd <- unname(sqrt(vcov(mm)[1]))
+            }
+          }
+          cat(".")
+          c(yearweek=x$yearweek[1], astikot=x$astikot[1], nuts=x$nuts[1], gri=gri,
+              ndocs=nrow(x), warn=last_one_threw_a_warning, gri.sd=gri.sd)
+        }
+    )
+  })
+
+  aggr2 <- merge(aggr1a, as.data.frame(do.call(rbind, aggr1b)))
+  aggr2$stratum <- with(aggr2, nuts*10 + astikot)
+  aggr2$prop <- NUTSpop$prop[match(aggr2$stratum, NUTSpop$stratum)]
+  aggr2$gri_w <- with(aggr2, gri*prop)
+  aggr2$gri_lw <- with(aggr2, log(gri+0.001)*prop)
+  aggr2$gri_lw_var <- with(aggr2, gri.sd^2 * prop^2)
+  
+  aggr3 <- aggregate(aggr2[,c("gri_lw","gritot","totvis", "gri_lw_var")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
+  aggr3$gri_w <- exp(aggr3$gri_lw)
+  aggr3$gri_w_var <- exp(aggr3$gri_lw_var)
+  aggr3 <- aggr3[,c("yearweek","gri_w","gritot","totvis", "gri_w_var")]
+
+}
+
 aggr3 <- subset(aggr3, yearweek>200427 & yearweek<210000)
 
 aggr3 <- merge(aggr3, subset(data.frame(yearweek=as.integer(rownames(doc_rep)), pa=doc_rep[,1], pd=doc_rep[,2]), yearweek>200427 & yearweek<210000), by.x="yearweek")

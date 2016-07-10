@@ -1,3 +1,5 @@
-calculateOld	0
+calculateOld	1
 noDelayed	0
 repLimDay	3
+oldAlgo 0
+weeksRecalc 40

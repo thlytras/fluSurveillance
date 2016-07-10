@@ -24,6 +24,10 @@ if (file.exists(paste(path_input, "options.txt", sep=""))) {
 if (is.null(opts$calculateOld)) opts$calculateOld <- 1
 if (is.null(opts$noDelayed)) opts$noDelayed <- 0
 if (is.null(opts$repLimDay)) opts$repLimDay <- 3
+if (is.null(opts$oldAlgo)) opts$oldAlgo <- 0
+if (is.null(opts$weeksRecalc)) opts$weeksRecalc <- 40
+
+if (!opts$oldAlgo) require(lme4)
 
 required_files_old <- c("IKA5.sav", "Ika5a.rec", "nomos_populations.sav", "sent08.rec", "sent12.rec", "sentinel_doctors_10.2005.sav", "sentKY.rec", "SENTNEWA.sav", "oldSentinel.R")
 tmp <- c(paste(path_input, required_files_old[1:8], sep=""), required_files_old[9])
@@ -54,6 +58,7 @@ if (FALSE %in% file.exists(required_files)) {
   cat("\n")
 } else { cat("ΝΑΙ\n") }
 if (opts$calculateOld) {
+  opts$weeksRecalc <- 0
   cat("\nΖητήθηκε επανυπολογισμός του rate για το παλιό sentinel (μέχρι 2013-2014).")
   cat("\nΥπάρχουν όλα τα απαραίτητα αρχεία του παλιού sentinel?... ")
   if (FALSE %in% file.exists(required_files_old)) {
@@ -63,8 +68,18 @@ if (opts$calculateOld) {
     cat("\n")
   } else { cat("ΝΑΙ\n") }
 } else {
-  if (!file.exists(paste(path_input, "ratechart.csv", sep=""))) {
-    stop("Δεν υπάρχει το αρχείο αποτελεσμάτων του παλιού sentinel (ratechart.csv),\nκαι δε ζητήθηκε επανυπολογισμός του rate για το παλιό sentinel (μέχρι 2013-2014).\nΑδυνατώ να συνεχίσω...")
+  if (opts$oldAlgo) {
+    if (!file.exists(paste(path_input, "ratechart-oldAlgo.csv", sep=""))) {
+        stop("Δεν υπάρχει το αρχείο αποτελεσμάτων του παλιού sentinel (ratechart-oldAlgo.csv),\nκαι δε ζητήθηκε επανυπολογισμός του rate για το παλιό sentinel (μέχρι 2013-2014).\nΑδυνατώ να συνεχίσω...")
+    }
+  } else {
+    if (!file.exists(paste(path_output, "ratechart-newAlgo.csv", sep=""))) {
+        cat("Δεν υπάρχει αρχείο εξόδου με αποτελέσματα του νέου αλγόριθμου (ratechart-newAlgo.csv).\nΘα τα υπολογίσω όλα από την αρχή του νέου sentinel.\n")
+        opts$weeksRecalc <- 0
+        if (!file.exists(paste(path_input, "ratechart-newAlgo.csv", sep=""))) {
+            stop("Δεν υπάρχουν αρχεία αποτελεσμάτων του παλιού sentinel (ratechart-newAlgo.csv),\nκαι δε ζητήθηκε επανυπολογισμός του rate για το παλιό sentinel (μέχρι 2013-2014).\nΑδυνατώ να συνεχίσω...")
+        }
+    }
   }
 }
 
@@ -85,6 +100,21 @@ isoweek <- function(x, type="week") {
     both_num = ifelse((is.na(x.isoyear) | is.na(x.isoweek)),NA,x.isoyear*100+x.isoweek)
     )
   }
+
+# Συνάρτηση εύρεσης της ημ/νίας έναρξης μιας ISO εβδομάδας
+isoweekStart <- function(x) {
+  year <- x %/% 100
+  week <- x %% 100
+  x.date <- as.Date(paste(year,"-6-1", sep=""))
+  x.weekday <- as.integer(format(x.date,"%w"))
+  x.weekday[x.weekday==0]=7
+  x.nearest.thu <- x.date-x.weekday+4
+  x.isoweek <- isoweek(x.nearest.thu)
+  res <- x.nearest.thu + 7*(week-x.isoweek) - 3
+  if (sum(isoweek(res, type="both_num") != x)>0) stop("Error specifying ISO week number")
+  return(res)
+}
+
 
 # Συνάρτηση μετατροπής των ημερομηνιών του SPSS σε κατανοητή από το R μορφή
 spssdate<-function(x){as.Date(ISOdate(1582,10,14)+x)}
@@ -242,15 +272,37 @@ if (FALSE %in% (c("nomadil", "nuts", "ast_p_nu", "agr_p_nu", "as_p_nu1", "ag_p_n
 nomos_populations<-nomos_populations[order(nomos_populations$nomadil),]
 
 
+# Create table with total population proportion per stratum (NUTS:astikot)
+NUTSpop <- data.frame(nuts=sort(rep(1:4,2)), astikot=rep(1:2,4))
+NUTSpop$stratum <- with(NUTSpop, nuts*10 + astikot)
+NUTSpop$prop <- mapply(function(n,a){   # prop = Stratum population / Total Greek population
+    atxt <- c("ast_p_nu", "agr_p_nu")[a]
+    subset(nomos_populations, nuts==n)[1,atxt]
+},NUTSpop$nuts, NUTSpop$astikot)
+
+
 if (opts$calculateOld) {
   source("oldSentinel.R", encoding="utf-8") # Υπολογίζει ξανά τα αποτελεσμάτα του παλιού sentinel...
   oldeAggr3 <- aggr3
   # (Eφόσον ζητήθηκε επανυπολογισμός, kράτα ΟΛΑ τα αποτελέσματα του παλιού sentinel - όχι μόνο το aggr3.)
   oldeAggr2 <- aggr2
-  oldeAggr1 <- aggr1
 } else { # ...ή τα φορτώνει΄έτοιμα, σωσμένα από προηγούμενη ανάλυση.
-  oldeAggr3 <- read.csv2(paste(path_input, "ratechart.csv", sep=""), row.names=1)
-  oldeAggr3 <- oldeAggr3[as.integer(rownames(oldeAggr3))<=201439, ]
+  if (opts$oldAlgo) {
+    oldeAggr3 <- read.csv2(paste(path_input, "ratechart-oldAlgo.csv", sep=""), row.names=1)
+    oldeAggr3 <- oldeAggr3[as.integer(rownames(oldeAggr3))<=201439, ]
+  } else if (opts$weeksRecalc==0) {
+    oldeAggr3 <- read.csv2(paste(path_input, "ratechart-newAlgo.csv", sep=""), row.names=1)
+    oldeAggr3 <- oldeAggr3[as.integer(rownames(oldeAggr3))<=201439, ]
+  } else {
+    oldeAggr3 <- read.csv2(paste(path_output, "ratechart-newAlgo.csv", sep=""), row.names=1)
+    # Τριμάρισμα μέχρι opts$weeksRecalc εβδομάδες πίσω από την τρέχουσα
+    trimweek <- isoweek(isoweekStart(tgtweek)-opts$weeksRecalc*7, "both_num")
+    if (trimweek<201440) {
+        trimweek <- 201440
+        opts$weeksRecalc <- as.integer(isoweekStart(tgtweek)-isoweekStart(201440))/7
+    }
+    oldeAggr3 <- oldeAggr3[as.integer(rownames(oldeAggr3)) < trimweek,]
+  }
   colnames(oldeAggr3) <- c("ILI rate", "αρ. γριπωδών συνδρομών", "αρ. επισκέψεων", "ILI rate variance", "Παθολόγοι / Γεν.ιατροί που δήλωσαν", "Παιδίατροι που δήλωσαν", "Εκτιμώμενος πληθυσμιακός παρονομαστής (σύνολο)")
 }
 
@@ -311,35 +363,93 @@ doc_rep_new <- with(sentinelBig,table(yearweek,neweid)) # Με χωριστά τ
 
 cat("\nΕξαγωγή ILI rate...\n")
 
-aggr1 <- aggregate(sentinelBig[,c("etos", "ebdo", "ast_p_nu", "agr_p_nu", "as_p_nu1", "ag_p_nu1", "as_p_nu2", "ag_p_nu2")], by=list(astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), mean, na.rm=TRUE)
 
-aggr2 <- aggregate(sentinelBig[,c("totvis", "gritot")], by=list(astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), sum, na.rm=TRUE)
+if (opts$oldAlgo) {
+  aggr1 <- aggregate(sentinelBig[,c("etos", "ebdo", "ast_p_nu", "agr_p_nu", "as_p_nu1", "ag_p_nu1", "as_p_nu2", "ag_p_nu2")], by=list(astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), mean, na.rm=TRUE)
 
-aggr2$gritot[is.na(aggr2$gritot)] = 0
-aggr2$gri <- (aggr2$gritot/aggr2$totvis)*1000
-aggr2$gri[is.na(aggr2$gri)] = 0
+  aggr2 <- aggregate(sentinelBig[,c("totvis", "gritot")], by=list(astikot=sentinelBig$astikot, nuts=sentinelBig$nuts, yearweek=sentinelBig$yearweek), sum, na.rm=TRUE)
 
-aggr2$gri_w <- ifelse(aggr2$astikot==1,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$ast_p_nu,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$agr_p_nu)
-aggr2$gri_w[is.na(aggr2$gri_w)] = 0
+  aggr2$gritot[is.na(aggr2$gritot)] = 0
+  aggr2$gri <- (aggr2$gritot/aggr2$totvis)*1000
+  aggr2$gri[is.na(aggr2$gri)] = 0
 
-# Υπολογισμός variance (βάσει διωνυμικής κατανομής και large-sample: p(1-p)/N ) για καθένα από τα ζυγισμένα rate.
-aggr2$gri_w_var <- ifelse(aggr2$astikot==1,
-  ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$ast_p_nu)^2,
-  ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$agr_p_nu)^2)
-aggr2$gri_w_var[is.na(aggr2$gri_w_var)] = 0
+  aggr2$gri_w <- ifelse(aggr2$astikot==1,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$ast_p_nu,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$agr_p_nu)
+  aggr2$gri_w[is.na(aggr2$gri_w)] = 0
 
-aggr2$gri_w1 <- ifelse(aggr2$astikot==1,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu1,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu1)
-aggr2$gri_w1[is.na(aggr2$gri_w1)] = 0
+  # Υπολογισμός variance (βάσει διωνυμικής κατανομής και large-sample: p(1-p)/N ) για καθένα από τα ζυγισμένα rate.
+  aggr2$gri_w_var <- ifelse(aggr2$astikot==1,
+    ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$ast_p_nu)^2,
+    ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$agr_p_nu)^2)
+  aggr2$gri_w_var[is.na(aggr2$gri_w_var)] = 0
 
-aggr2$gri_w2 <- ifelse(aggr2$astikot==1,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu2,
-  (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu2)
-aggr2$gri_w2[is.na(aggr2$gri_w2)] = 0
+  aggr2$gri_w1 <- ifelse(aggr2$astikot==1,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu1,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu1)
+  aggr2$gri_w1[is.na(aggr2$gri_w1)] = 0
 
+  aggr2$gri_w2 <- ifelse(aggr2$astikot==1,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu2,
+    (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu2)
+    aggr2$gri_w2[is.na(aggr2$gri_w2)] = 0
+
+  aggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
+
+} else {
+  sntBig <- sentinelBig
+  if (opts$weeksRecalc>0) {
+    sntBig <- subset(sntBig, yearweek >= isoweek(isoweekStart(tgtweek)-opts$weeksRecalc*7, "both_num"))
+  }
+
+  # Adjust records (if missing ILI cases replace with 0)
+  sntBig$gritot[is.na(sntBig$gritot)] <- 0   # If ILI cases missing, set to zero
+  sntBig <- subset(sntBig, !is.na(totvis) & totvis>0)   # Discard if total visits zero or missing
+
+  # Aggregate ILI cases & total visits per stratum and per yearweek
+  aggr1a <- aggregate(sntBig[,c("totvis", "gritot")], by=list(astikot=sntBig$astikot, nuts=sntBig$nuts, yearweek=sntBig$yearweek), sum, na.rm=TRUE)
+
+  suppressWarnings({   # Don't echo glmer warnings
+    aggr1b <- by(sntBig, 
+      list(astikot=sntBig$astikot, nuts=sntBig$nuts, yearweek=sntBig$yearweek), 
+        function(x) {
+          last_one_threw_a_warning <- 0
+          wHandler <- function(w) { last_one_threw_a_warning <<- 1 }
+          if (sum(x$gritot)==0) {
+            gri <- 0; gri.sd <- 0
+          } else {
+            if (nrow(x)==1) {
+              m1 <- glm(gritot ~ 1, data=x, offset=log(totvis), family="poisson")
+              od <- sum(m1$weights * m1$residuals^2)/m1$df.r
+              gri <- unname(exp(coef(m1))*1000)
+              gri.sd <- unname(sqrt(vcov(m1)))
+            } else {
+              mm <- withCallingHandlers(
+                glmer(gritot ~ 1 + (1|codeiat), data=x, offset=log(totvis), family="poisson"), 
+                  warning = wHandler)
+              gri <- unname(1000*exp(fixef(mm)))
+              gri.sd <- unname(sqrt(vcov(mm)[1]))
+            }
+          }
+          cat(".")
+          c(yearweek=x$yearweek[1], astikot=x$astikot[1], nuts=x$nuts[1], gri=gri,
+              ndocs=nrow(x), warn=last_one_threw_a_warning, gri.sd=gri.sd)
+        }
+    )
+  })
+
+  aggr2 <- merge(aggr1a, as.data.frame(do.call(rbind, aggr1b)))
+  aggr2$stratum <- with(aggr2, nuts*10 + astikot)
+  aggr2$prop <- NUTSpop$prop[match(aggr2$stratum, NUTSpop$stratum)]
+  aggr2$gri_w <- with(aggr2, gri*prop)
+  aggr2$gri_lw <- with(aggr2, log(gri+0.001)*prop)
+  aggr2$gri_lw_var <- with(aggr2, gri.sd^2 * prop^2)
+  
+  aggr3 <- aggregate(aggr2[,c("gri_lw","gritot","totvis", "gri_lw_var")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
+  aggr3$gri_w <- exp(aggr3$gri_lw)
+  aggr3$gri_w_var <- exp(aggr3$gri_lw_var)
+  aggr3 <- aggr3[,c("yearweek","gri_w","gritot","totvis", "gri_w_var")]
+}
 
 showgri<-function(yweek) {
   result <- matrix(colSums(subset(aggr2,yearweek==yweek)[,c("gritot","totvis")]))
@@ -348,7 +458,6 @@ showgri<-function(yweek) {
   result
   }
 
-aggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
 aggr3 <- subset(aggr3, yearweek>200427 & yearweek<210000)
 
 aggr3 <- merge(aggr3, subset(data.frame(yearweek=as.integer(rownames(doc_rep)), pa=doc_rep[,1], pd=doc_rep[,2]), yearweek>200427 & yearweek<210000), by.x="yearweek")
@@ -369,8 +478,12 @@ if (file.exists(paste(path_input,"abcdland.csv",sep=""))) {
 
 rownames(aggr3) <- aggr3$yearweek
 aggr3$yearweek <- NULL
-aggr3$gri_w <- round(aggr3$gri_w,2)
+#aggr3$gri_w <- round(aggr3$gri_w,2)
 colnames(aggr3)[1:6] <- colnames(oldeAggr3)[1:6]
+
+
+
+# ΣΤΟΠ ΕΔΩ
 
 aggr3 <- rbind(oldeAggr3, aggr3) # Συνένωση με τα αποτελέσματα του παλιού sentinel
 
@@ -648,13 +761,13 @@ if (is.na(graphtype)) {
   diax_graph(diaxyear)
   dev.off()
   
-  eval(graph3)
-  sentinelGraphBySystem(tgtyear, ci=TRUE)
-  dev.off()
+#  eval(graph3)
+#  sentinelGraphBySystem(tgtyear, ci=TRUE)
+#  dev.off()
 
-  eval(graph4)
-  sentinelGraphByNUTS(tgtyear, ci=TRUE)
-  dev.off()
+#  eval(graph4)
+#  sentinelGraphByNUTS(tgtyear, ci=TRUE)
+#  dev.off()
 
 }
 
@@ -679,6 +792,11 @@ if(tgtweek>=201440) {
 cat("\nΑποθήκευση ανάλυσης...\n")
 
 write.csv2(aggr3, file = paste(path_output,"ratechart.csv",sep=""))
+if (opts$oldAlgo) {
+    write.csv2(aggr3, file = paste(path_output,"ratechart_oldAlgo.csv",sep=""))
+} else {
+    write.csv2(aggr3, file = paste(path_output,"ratechart_newAlgo.csv",sep=""))
+}
 if(tgtweek>=201440) {
   write.csv2(plirotita_nuts,paste(path_output,"plirotita_nuts_",tgtweek,".csv",sep=""))
   write.csv2(plirotita_eidikotita,paste(path_output,"plirotita_eidikotita_",tgtweek,".csv",sep=""))
