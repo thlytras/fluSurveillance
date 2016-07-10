@@ -14,9 +14,12 @@ web_graph <- function(years, col=rainbow(length(years)),
   ylab <- gsub("\n", "<br/>", ylab); ylab2 <- gsub("\n", "<br/>", ylab2)
   maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(years,"-12-31",sep="")))==53))>0, 53, 52)
   set <- sapply(years, function(x){ratechart[as.character(c((x*100+40):(x*100+maxwk),((x+1)*100+1):((x+1)*100+20)))]})
+  set <- cbind(set, as.integer(rownames(set))%%100)
+  set[,ncol(set)][is.na(set[,ncol(set)])] <- 53
+  rownames(set)<-NULL
   set <- as.data.frame(set)
-  colnames(set) <- paste(years, years+1, sep="-")
-  set$week <- factor(as.integer(rownames(set))%%100, levels=c(40:maxwk,1:20))
+  colnames(set) <- c(paste(years, years+1, sep="-"), "week")
+  set$week <- factor(set$week, levels=c(40:maxwk,1:20))
   limrate <- (max(set[,-ncol(set)],na.rm=TRUE)%/%10+2)*10
   if(!is.na(yaxis2[1])) {
     maxes <- apply(set[,-ncol(set)], 2, max, na.rm=TRUE)
@@ -24,7 +27,7 @@ web_graph <- function(years, col=rainbow(length(years)),
     limrate <- (max(maxes, na.rm=TRUE)%/%10+2)*10
     limrate2 <- limrate*mult
   }
-  set <- reshape(set, direction="long", varying=list(1:3), v.names="rate")
+  set <- reshape(set, direction="long", varying=list(1:(ncol(set)-1)), v.names="rate")
   set$year <- paste(years, years+1, sep="-")[set$time]
   set$time <- NULL; set$id <- NULL; rownames(set) <- NULL
   suppressWarnings({ h <- hPlot(rate ~ week, group="year", data=set) })
@@ -48,11 +51,9 @@ web_graph <- function(years, col=rainbow(length(years)),
   return(h)
 }
 
-h <- web_graph(ytp, col=apply(col2rgb(c("black", "navyblue","red3"))/255, 2, function(x)rgb(x[1],x[2],x[3])), 
+h <- web_graph(ytp, col=apply(col2rgb(c("red", "navyblue"))/255, 2, function(x)rgb(x[1],x[2],x[3])), 
       lty=c("shortdot", "shortdot", "solid"), lwd=c(1.5,1.5,3),
-      yaxis2=ytp[ytp<2014], mult=1/5, 
-      ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Νέο σύστημα επιτήρησης, 2014-2015)",
-      ylab2="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Παλιό σύστημα επιτήρησης, 2012-2013, 2013-2014)")
+      ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Νέο σύστημα επιτήρησης, 2014-2015)")
 
 h$save(paste(path_output, "rChart.html", sep=""))
 

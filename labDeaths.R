@@ -191,7 +191,7 @@ totDeaths$yearweekf <- factor(totDeaths$yearweek, levels=weekSel)
 momo <- read.dta(paste(path_input, "momoOutput.dta", sep=""))
 momo$wy <- with(momo, paste(YoDi, formatC(WoDi, width=2, flag="0"), sep="-"))
 momo$wy[!(momo$WoDi %in% c(1,26))] <- NA
-momo <- subset(momo, nbc>0)
+momo <- subset(momo, nbc>0)[-1,]
 if (is.null(momo$UPIb4)) {
   warning("Column UPIb4 not found in MOMO output.")
   momo$UPIb4 <- 2*momo$UPIb2 - momo$Pnb
@@ -238,7 +238,7 @@ methPlot <- function(limweek=tgtweek){
 	lwd=0, cex.axis=0.8, line=-1)
     axis(1, at=bpos[seq(2,length(bpos),2)], labels=(weekSel %% 100)[seq(2,length(bpos),2)], 
 	lwd=0, cex.axis=0.8, line=-1)
-    axis(2, at=seq(0,bylim,2), las=2, cex.axis=0.9)
+    axis(2, las=2, cex.axis=0.9) # axis(2, at=seq(0,bylim,2), las=2, cex.axis=0.9)
     mtext("Εβδομάδα εισαγωγής στη ΜΕΘ", side=1, cex=0.9, font=2, line=1.5)
     return()
 }
@@ -262,7 +262,7 @@ deathPlot <- function(limweek=tgtweek){
 	lwd=0, cex.axis=0.8, line=-1)
     axis(1, at=bpos[seq(2,length(bpos),2)], labels=(weekSel %% 100)[seq(2,length(bpos),2)], 
 	lwd=0, cex.axis=0.8, line=-1)
-    axis(2, at=seq(0,bylim,2), las=2, cex.axis=0.9)
+    axis(2, las=2, cex.axis=0.9) # axis(2, at=seq(0,bylim,2), las=2, cex.axis=0.9)
     mtext("Εβδομάδα θανάτου", side=1, cex=0.9, font=2, line=1.5)
     return()
 }
@@ -275,7 +275,7 @@ methDeathAgePlot <- function(limweek=tgtweek){
     abline(h=0)
     bpos <- barplot(t(a), border=NA, beside=TRUE, col=c("darkred", "darkgreen"), axisnames=F, axes=F, ylab="Αριθμός κρουσμάτων", font.lab=2, cex.lab=0.9, ylim=c(0,max(a)+6),
 	add=TRUE, legend.text=TRUE, args.legend=list(bty="o", box.col="white", bg="white", border=NA, cex=0.8, x="topright", inset=c(0,-0.03)))
-    axis(2, at=seq(0, max(a)+6, 2), las=2, cex.axis=0.9)
+    axis(2, las=2, cex.axis=0.9) # axis(2, at=seq(0, max(a)+6, 2), las=2, cex.axis=0.9)
 
     axis(1, at=apply(bpos, 2, mean)[seq(1,ncol(bpos),2)], labels=rownames(a)[seq(1,ncol(bpos),2)], 
 	lwd=0, cex.axis=0.8, line=-1)
@@ -288,7 +288,7 @@ methDeathAgePlot <- function(limweek=tgtweek){
 
 momoPlot <- function() {
     par(mar=c(7,4,2,11))
-    plot(0, type="n", bty="l", ylim=c(100,700), xlim=c(1,nrow(momo)), 
+    plot(0, type="n", bty="l", ylim=c(1000,4000), xlim=c(1,nrow(momo)), 
 	xaxt="n", ylab="Αριθμός θανάτων", xlab=NA)
     mtext("Έτος - Αριθμός εβδομάδας", line=5, side=1)
     points(y=momo$UPIb4, x=1:nrow(momo), col="yellow3", type="l", lwd=2)
