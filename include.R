@@ -16,7 +16,6 @@ showMeWarnings <- function(expr)
 }
 
 
-
 # Συνάρτηση υπολογισμού της εβδομάδας κατά ISO
 isoweek <- function(x, type="week") {
   alts=c("week","year","both_text","both_num")
@@ -49,7 +48,6 @@ isoweekStart <- function(x) {
   return(res)
 }
 
-
 # Συνάρτηση μετατροπής των ημερομηνιών του SPSS σε κατανοητή από το R μορφή
 spssdate<-function(x){as.Date(ISOdate(1582,10,14)+x)}
 
@@ -64,7 +62,9 @@ recode <- function(target,from,to) {
   }
 
 
+# ΣΥΝΑΡΤΗΣΕΙΣ ΕΠΕΞΕΡΓΑΣΙΑΣ ΔΕΔΟΜΕΝΩΝ & ΑΛΓΟΡΙΘΜΩΝ ΑΝΑΛΥΣΗΣ
 
+# Function to fit the main model (whole country weekly ILI rate)
 # Data.frame big should have the following columns: gritit, totvis, codeiat, nuts, astikot
 fitMainModel <- function(big, NUTSpop, verbose=FALSE, returnModels=FALSE) {
   # Match stratum information
@@ -104,14 +104,12 @@ fitMainModel <- function(big, NUTSpop, verbose=FALSE, returnModels=FALSE) {
                 log.gri.sd=unname(sqrt(vcov(m)[1]))
     ))))
     res$yearweek <- sort(unique(big$yearweek))
-  # If returnModels==TRUE, include the list of models in the output
     if (returnModels) { attr(res, "aggrm") <- aggrm }
     res
 }
 
 
-
-
+# Descriptives by week, whole country
 aggrByWeek <- function(big) {
     aggr1a <- aggregate(big[,c("totvis", "gritot")], by=list(yearweek=big$yearweek), sum, na.rm=TRUE)
     aggr1b <- as.data.frame.matrix(with(big, table(yearweek, factor(eid, levels=1:2))))
@@ -191,7 +189,12 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
   if (!is.na(yaxis2[1])) {
     sapply(i1, function(i){
       points(set[,i], type="o", col=col[i], lwd=2, pch=16)
-      if (ci[i]) plotCI(set[,i], uiw=1.96*sqrt(set_var[,i]), col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+      if (ci[i]) {
+        plotCI(set[,i], 
+            ui=exp(log(set[,i]) + 1.96*sqrt(set_var[,i])),
+            li=exp(log(set[,i]) - 1.96*sqrt(set_var[,i])), 
+            col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+      }
     })
     par(new=TRUE)
     plot(0, type="n", bty="u", xaxt="n", yaxt="n", ylim=c(0,limrate2), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=NA, xlab=NA)
@@ -204,7 +207,12 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
     }
     sapply(i2, function(i){
       points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, lty=lty[i], cex=lwd[i])
-      if (ci[i]) plotCI(set[,i], uiw=1.96*sqrt(set_var[,i]), col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+      if (ci[i]) {
+        plotCI(set[,i], 
+            ui=exp(log(set[,i]) + 1.96*sqrt(set_var[,i])),
+            li=exp(log(set[,i]) - 1.96*sqrt(set_var[,i])), 
+            col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+      }
     })
     axis(4)
     # Οι γραμμές του αριστερού y άξονα θέλουμε να βρίσκονται σε πρώτο πλάνο.
@@ -212,12 +220,22 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
     plot(0, type="n", axes=FALSE, ylim=c(0,limrate), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=NA, xlab=NA)
     sapply(i1, function(i){
       points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, cex=lwd[i])
-      if (ci[i]) plotCI(set[,i], uiw=1.96*sqrt(set_var[,i]), col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+      if (ci[i]) {
+        plotCI(set[,i], 
+            ui=exp(log(set[,i]) + 1.96*sqrt(set_var[,i])),
+            li=exp(log(set[,i]) - 1.96*sqrt(set_var[,i])), 
+            col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+      }
     })
   } else {
     sapply(1:length(years), function(i){
       points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, lty=lty[i], cex=lwd[i])
-      if (ci[i]) plotCI(set[,i], uiw=1.96*sqrt(set_var[,i]), col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+      if (ci[i]) {
+        plotCI(set[,i], 
+            ui=exp(log(set[,i]) + 1.96*sqrt(set_var[,i])),
+            li=exp(log(set[,i]) - 1.96*sqrt(set_var[,i])), 
+            col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+      }
     })
   }
   return()
