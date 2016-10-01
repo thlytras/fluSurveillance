@@ -163,7 +163,7 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
 	ylab2=NA, ylab2rot=TRUE, ci=FALSE)
 {
   ratechart <- resAll$gri; names(ratechart) <- resAll$yearweek
-  ratechart_var <- resAll$log.gri.sd; names(ratechart_var) <- res$yearweek
+  ratechart_var <- resAll$log.gri.sd; names(ratechart_var) <- resAll$yearweek
   if(length(ci)==1) ci <- rep(ci, length(years))
   maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(years,"-12-31",sep="")))==53))>0, 53, 52)
   set <- sapply(years, function(x){ratechart[as.character(c((x*100+40):(x*100+maxwk),((x+1)*100+1):((x+1)*100+20)))]})

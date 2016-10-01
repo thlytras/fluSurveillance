@@ -326,7 +326,7 @@ res$popest <- round(
     + 2*(doc_rep_new[,"5"]/abcdland[1,2]*sum(abcdland[3:4,2]))) # Παιδίατροι ΙΚΑ Αμαρουσίου. Πολλ/ζονται επί 2.
 
 resAll <- rbind(resOld, res) # Συνένωση με τα αποτελέσματα του παλιού sentinel
-
+res <- subset(resAll, yearweek>=201439)
 
 
 # ******** ΕΞΑΓΩΓΗ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ********
@@ -337,39 +337,27 @@ cat("\nΔημιουργία γραφημάτων...\n")
 # Τα γραφήματα είναι υπό μορφή συναρτήσεων για να είναι επαναχρησιμοποιήσιμα 
 # μετά την εκτέλεση του script, και βρίσκονται στο αρχείο include.R
 
-if (graphtype=="ps" || graphtype=="pdf") {
-  graph1 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""), width=10, height=6)
-  graph2 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_allyears.", graphtype, sep=""), width=10, height=6)
-  graph3 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_bySystem_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""), width=10, height=6)
-  graph4 <- call(paste("cairo_", graphtype, sep=""), filename = paste(path_output, "sentinel_byNUTS_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""), width=10, height=6)
-  
-} else if (graphtype=="svg") {
-  graph1 <- call("svg", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".svg",sep=""), width=10, height=6)
-  graph2 <- call("svg", filename = paste(path_output, "sentinel_allyears.svg",sep=""), width=10, height=6)
-  graph3 <- call("svg", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".svg",sep=""), width=10, height=6)
-  graph4 <- call("svg", filename = paste(path_output,"sentinel_byNUTS_",tgtyear,"-",(tgtyear+1),".svg",sep=""), width=10, height=6)
-  
-} else if (graphtype=="jpg") {
-  graph1 <- call("jpeg", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".jpg",sep=""), width=2800, height=1680, res=288)
-  graph2 <- call("jpeg", filename = paste(path_output, "sentinel_allyears.jpg",sep=""), width=2800, height=1680, res=288)
-  graph3 <- call("jpeg", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".jpg",sep=""), width=2800, height=1680, res=288)
-  graph4 <- call("jpeg", filename = paste(path_output,"sentinel_byNUTS_",tgtyear,"-",(tgtyear+1),".jpg",sep=""), width=2800, height=1680, res=288)
-} else if (graphtype=="png") {
-  graph1 <- call("png", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".png",sep=""), width=2800, height=1680, res=288)
-  graph2 <- call("png", filename = paste(path_output, "sentinel_allyears.png",sep=""), width=2800, height=1680, res=288)
-  graph3 <- call("png", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".png",sep=""), width=2800, height=1680, res=288)
-  graph4 <- call("png", filename = paste(path_output,"sentinel_byNUTS_",tgtyear,"-",(tgtyear+1),".png",sep=""), width=2800, height=1680, res=288)
-} else if (graphtype=="tiff") {
-  graph1 <- call("tiff", filename = paste(path_output,"sentinel_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
-  graph2 <- call("tiff", filename = paste(path_output, "sentinel_allyears.tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
-  graph3 <- call("tiff", filename = paste(path_output,"sentinel_bySystem_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
-  graph4 <- call("tiff", filename = paste(path_output,"sentinel_byNUTS_",tgtyear,"-",(tgtyear+1),".tif",sep=""), width=2800, height=1680, res=288, compression="lzw")
+makeGraphCalls <- function(graphtype) {
+  a1 <- c(ps="cairo_ps", pdf="cairo_pdf", svg="svg", jpg="jpeg", png="png", tiff="tiff")
+  a2 <- c(
+    paste(path_output, "sentinel_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_allyears.", graphtype, sep=""),
+    paste(path_output, "sentinel_bySystem_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_byNUTS_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep="")
+  )
+  a3 <- c(rep(10, 3), rep(2800, 3)); names(a3) <- names(a1)
+  a4 <- c(rep(6, 3), rep(1680, 3)); names(a4) <- names(a1)
+  a5 <- c(rep("", 3), rep(", res=288", 3)); names(a5) <- names(a1)
+  a6 <- c(rep("", 5), ", compression=lzw"); names(a6) <- names(a1)
+  sapply(1:4, function(i) sprintf("%s(\"%s\", width=%s, height=%s%s%s)", a1[graphtype], 
+        a2[i], a3[graphtype], a4[graphtype], a5[graphtype], a6[graphtype]) )
 }
 
 if (is.na(graphtype)) {
   cat("ΔΕΝ δημιουργήθηκαν γραφήματα!\nΑυτή η εγκατάσταση του R δεν έχει δυνατότητα εγγραφής σε κανένα γραφικό file format...\n")
 } else {
-  eval(graph1)
+  graphCalls <- makeGraphCalls(graphtype)
+  eval(parse(text=graphCalls[1]))
   #ytp <- c(tgtyear-2, tgtyear-1,tgtyear)
   ytp <- c(tgtyear-1, tgtyear) # Προσωρινή τροποποίηση για φέτος (θα δείχνουμε μόνο 2 χρονιές)
   if (sum(ytp>=2014)>0 & sum(ytp>=2014)<length(ytp)) {
@@ -385,15 +373,15 @@ if (is.na(graphtype)) {
   }
   dev.off()
   
-  eval(graph2)
+  eval(parse(text=graphCalls[2]))
   diax_graph(diaxyear)
   dev.off()
   
-#  eval(graph3)
+#  eval(parse(text=graphCalls[3]))
 #  sentinelGraphBySystem(tgtyear, ci=TRUE)
 #  dev.off()
 
-#  eval(graph4)
+#  eval(parse(text=graphCalls[4]))
 #  sentinelGraphByNUTS(tgtyear, ci=TRUE)
 #  dev.off()
 
