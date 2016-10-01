@@ -262,8 +262,7 @@ sentinelBig$neweid2[sentinelBig$codeiat %in% ika_marousi_pa] <- 4 # Παθολό
 sentinelBig$neweid2[sentinelBig$codeiat %in% ika_marousi_pd] <- 5 # Παιδίατροι ΙΚΑ Αμαρουσίου
 
 
-# Here we may be able to get rid of nomos_populations - but we'll need to calculate NUTS
-#sentinelBig <- sentinelBig[,c(required_fields, "codeiat", "astikot", "yearweek", "neweid", "neweid2")]
+sentinelBig$nom <- factor(sentinelBig$nom, levels=nomos_populations$nomadil)
 sentinelBig<-merge(sentinelBig[,c(required_fields, "codeiat", "astikot", "yearweek", "neweid", "neweid2")],nomos_populations,by.x="nom", by.y="nomadil",all.x=TRUE)
 sentinelBig<-subset(sentinelBig,!is.na(ast_p_nu))   # Έξω οι δηλώσεις που δε ξέρουμε το νομό τους
 sentinelBig<-subset(sentinelBig,!is.na(totvis))   # Πετώ έξω όσα (από λάθος) έχουν missing επισκέψεις (δηλαδή δεν έχουν παρονομαστές). Για τους ιδιώτες αυτό έχει ήδη γίνει.
