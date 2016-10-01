@@ -1,8 +1,8 @@
 # Εφαρμογή στατιστικής επεξεργασίας των δεδομένων του συστήματος sentinel
-# v2.1 © 2015, Θοδωρής Λύτρας
+# v3.0 © 2015, Θοδωρής Λύτρας
 #
 # Επεξεργασία των δεδομένων του παλιού sentinel
-# Τελευταία αναθεώρηση: Ιανουάριος 2015
+# Τελευταία αναθεώρηση: Οκτώβριος 2016
 
 cat("\nΕπεξεργασία στοιχείων ΠΑΛΙΟΥ sentinel - παρακαλώ περιμένετε...\n\n")
 
@@ -13,27 +13,27 @@ cat("\nΕπεξεργασία στοιχείων ΠΑΛΙΟΥ sentinel - παρ�
 cat("\nΑνάγνωση δηλώσεων ιδιωτών...\n\n")
 
 tryCatch({   # Ανίχνευση λαθών
-  sentnewa <- read.spss(paste(path_input,"SENTNEWA.sav",sep=""), reencode="windows-1253", to.data.frame=TRUE, use.value.labels=FALSE)
+  sentnewa <- read.spss(paste(path_input,"oldSentinel/SENTNEWA.sav",sep=""), reencode="windows-1253", to.data.frame=TRUE, use.value.labels=FALSE)
 }, error=function(err){
-  stop(paste(readerrmsg[1],"SENTNEWA.sav",readerrmsg[2],path_input))
+  stop(paste(readerrmsg[1],"oldSentinel/SENTNEWA.sav",readerrmsg[2],path_input))
 })
 
 names(sentnewa)<-tolower(names(sentnewa))
 
 tryCatch({   # Ανίχνευση λαθών
-  suppressWarnings( sent08 <- read.epiinfo(file(paste(path_input,"sent08.rec",sep=""), encoding="windows-1253"), lower.case.names=TRUE) )
+  suppressWarnings( sent08 <- read.epiinfo(file(paste(path_input,"oldSentinel/sent08.rec",sep=""), encoding="windows-1253"), lower.case.names=TRUE) )
 }, error=function(err){
-  stop(paste(readerrmsg[1],"sent08.rec",readerrmsg[2],path_input))
+  stop(paste(readerrmsg[1],"oldSentinel/sent08.rec",readerrmsg[2],path_input))
 })
 
 tryCatch({   # Ανίχνευση λαθών
-  suppressWarnings( sent12 <- read.epiinfo(file(paste(path_input,"sent12.rec",sep=""), encoding="windows-1253"), lower.case.names=TRUE) )
+  suppressWarnings( sent12 <- read.epiinfo(file(paste(path_input,"oldSentinel/sent12.rec",sep=""), encoding="windows-1253"), lower.case.names=TRUE) )
 }, error=function(err){
-  stop(paste(readerrmsg[1],"sent12.rec",readerrmsg[2],path_input))
+  stop(paste(readerrmsg[1],"oldSentinel/sent12.rec",readerrmsg[2],path_input))
 })
 
 
-required_fields <- c("codeiat", "etos", "ebdo", "monvis", "tuevis", "wedvis", "thuvis", "frivis", "totvis", "gritot", "hmekat")
+required_fields <- c("codeiat", "etos", "ebdo", "monvis", "tuevis", "wedvis", "thuvis", "frivis", "totvis", "gastot", "gritot", "hmekat")
 
 if (FALSE %in% (required_fields %in% names(sentnewa))) stop("Το αρχείο SENTNEWA.sav δεν περιέχει τα σωστά πεδία! Αδυνατώ να συνεχίσω...")   # Ανίχνευση λαθών
 if (FALSE %in% (required_fields %in% names(sent08))) stop("Το αρχείο sent08.rec δεν περιέχει τα σωστά πεδία! Αδυνατώ να συνεχίσω...")   # Ανίχνευση λαθών
@@ -52,9 +52,9 @@ sentinel<-subset(sentinel,codeiat!="" & !is.na(codeiat))
 
 # Ανάγνωση της λίστας των ιδιωτών ιατρών
 tryCatch({
-  sentinel_doctors_10_2005 <- read.spss(paste(path_input,"sentinel_doctors_10.2005.sav",sep=""), reencode="windows-1253", to.data.frame=TRUE, use.value.labels=FALSE)
+  sentinel_doctors_10_2005 <- read.spss(paste(path_input,"oldSentinel/sentinel_doctors_10.2005.sav",sep=""), reencode="windows-1253", to.data.frame=TRUE, use.value.labels=FALSE)
 }, error=function(err){
-  stop(paste(readerrmsg[1],"sentinel_doctors_10.2005.sav",readerrmsg[2],path_input))
+  stop(paste(readerrmsg[1],"oldSentinel/sentinel_doctors_10.2005.sav",readerrmsg[2],path_input))
 })
 names(sentinel_doctors_10_2005) <- tolower(names(sentinel_doctors_10_2005))
 if (FALSE %in% (c("codeiat", "oldnew", "nomadil", "nuts", "eidi1") %in% names(sentinel_doctors_10_2005))) stop("Η λίστα των ιδιωτών ιατρών δεν περιέχει τα σωστά πεδία! Αδυνατώ να συνεχίσω...")
@@ -83,12 +83,12 @@ sentinel$systhma <- 1
 cat("\nΑνάγνωση δηλώσεων από ΚΥ (θέλει λίγο χρόνο)...\n")
 
 tryCatch({
-  suppressWarnings( sentinel_KY <- read.epiinfo(file(paste(path_input,"sentKY.rec",sep=""), encoding="windows-1253"), lower.case.names=TRUE) )
+  suppressWarnings( sentinel_KY <- read.epiinfo(file(paste(path_input,"oldSentinel/sentKY.rec",sep=""), encoding="windows-1253"), lower.case.names=TRUE) )
 }, error=function(err){
-  stop(paste(readerrmsg[1],"sentKY.rec",readerrmsg[2],path_input))
+  stop(paste(readerrmsg[1],"oldSentinel/sentKY.rec",readerrmsg[2],path_input))
 })
 
-required_fields <- c("nom", "eid", "etos", "ebdo", "monvis", "tuevis", "wedvis", "thuvis", "frivis", "totvis", "gritot")
+required_fields <- c("nom", "eid", "etos", "ebdo", "monvis", "tuevis", "wedvis", "thuvis", "frivis", "totvis", "gastot", "gritot")
 if (FALSE %in% (required_fields %in% names(sentinel_KY))) stop("Το αρχείο sentKY.rec δεν περιέχει τα σωστά πεδία! Αδυνατώ να συνεχίσω...")   # Ανίχνευση λαθών
 
 sentinel_KY$yearweek = with(sentinel_KY, etos*100 + ebdo)
@@ -98,7 +98,7 @@ levels(sentinel_KY$nomadil)[levels(sentinel_KY$nomadil)=="Α4"] = "a4"
 sentinel_KY$eid <- factor(sentinel_KY$eid, levels=c(6,5), labels=c(1,2))
 
 # Τριμάρουμε τα πεδία που δεν θα χρειαστούν άλλο
-sentinel_KY <- transform(sentinel_KY, aa=NULL, syst=NULL, nomos=NULL, eidikot=NULL, iatros=NULL, dilosi=NULL, arxebd=NULL, telebd=NULL, keycode=NULL, satvis=NULL, sunvis=NULL, laatot=NULL, gastot=NULL, erztot=NULL, koktot=NULL, anetot=NULL, ilatot=NULL, erytot=NULL, partot=NULL, totnos=NULL)
+sentinel_KY <- transform(sentinel_KY, aa=NULL, syst=NULL, nomos=NULL, eidikot=NULL, iatros=NULL, dilosi=NULL, arxebd=NULL, telebd=NULL, keycode=NULL, satvis=NULL, sunvis=NULL, laatot=NULL, erztot=NULL, koktot=NULL, anetot=NULL, ilatot=NULL, erytot=NULL, partot=NULL, totnos=NULL)
 # ...και ορίζουμε από ποιό σύστημα είναι αυτές οι εγγραφές.
 sentinel_KY$systhma <- 2
 
@@ -109,17 +109,17 @@ sentinel_KY$systhma <- 2
 cat("\nΑνάγνωση δηλώσεων από ΙΚΑ...\n\n")
 
 tryCatch({   # Ανίχνευση λαθών
-  ika5 <- read.spss(paste(path_input,"IKA5.sav",sep=""), reencode="windows-1253", to.data.frame=TRUE, use.value.labels=FALSE)
+  ika5 <- read.spss(paste(path_input,"oldSentinel/IKA5.sav",sep=""), reencode="windows-1253", to.data.frame=TRUE, use.value.labels=FALSE)
 }, error=function(err){
-  stop(paste(readerrmsg[1],"IKA5.sav",readerrmsg[2],path_input))
+  stop(paste(readerrmsg[1],"oldSentinel/IKA5.sav",readerrmsg[2],path_input))
 })
 
 names(ika5)<-tolower(names(ika5))
 
 tryCatch({   # Ανίχνευση λαθών
-  suppressWarnings( ika5a <- read.epiinfo(file(paste(path_input,"Ika5a.rec",sep=""), encoding="windows-1253"), lower.case.names=TRUE) )
+  suppressWarnings( ika5a <- read.epiinfo(file(paste(path_input,"oldSentinel/Ika5a.rec",sep=""), encoding="windows-1253"), lower.case.names=TRUE) )
 }, error=function(err){
-  stop(paste(readerrmsg[1],"Ika5a.rec",readerrmsg[2],path_input))
+  stop(paste(readerrmsg[1],"oldSentinel/Ika5a.rec",readerrmsg[2],path_input))
 })
 
 ika5a <- transform(ika5a, codeiat=NULL, code1=NULL)
@@ -147,6 +147,8 @@ ika<-ika[order(ika$nomadil),]
 
 ika$eid <- factor(ika$eidik, levels=c("PA","PD"), labels=1:2)
 
+ika$gastot <- NA
+
 # Διώχνουμε τις μεταβλητές που δε θα χρειαστούμε
 ika <- transform(ika, eidik=NULL)
 # ...και ορίζουμε από ποιό σύστημα είναι αυτές οι εγγραφές.
@@ -172,124 +174,41 @@ big<-subset(big,!is.na(ast_p_nu))   # Έξω οι δηλώσεις που δε �
 big<-subset(big,!is.na(totvis))   # Πετώ έξω όσα (από λάθος) έχουν missing επισκέψεις (δηλαδή δεν έχουν παρονομαστές). Για τους ιδιώτες αυτό έχει ήδη γίνει.
 big$hmekat[big$hmekat<"2004-1-1" | big$hmekat>"2100-1-1"] <- NA  # Διόρθωση για εμφανώς λανθασμένες ημερομηνίες καταχώρησης
 
+big <- subset(big, yearweek>200427 & yearweek<210000)
+big <- subset(big, !is.na(totvis) & totvis>0)   # Discard if total visits zero or missing
+
 # Υπολογίζουμε την πληρότητα της δήλωσης
-plirotita_eidikotita <- with(subset(big, yearweek==tgtweek & !is.na(yearweek)), table(factor(systhma,levels=1:3), factor(eid, levels=1:2)))
-plirotita_nuts <- with(subset(big, yearweek==tgtweek & !is.na(yearweek)), table(factor(systhma,levels=1:3), factor(nuts, levels=1:4)))
-doc_rep <- with(big,table(yearweek,eid))
+plirotites_eidikotita_old <- with(big, table(
+        systhma = factor(systhma, levels=1:3, labels=c("IDIO", "KEYG", "PEDY")), 
+        eidikotita = factor(eid, levels=1:2, labels=c("PA","PD")), 
+        yearweek))
+plirotites_nuts_old <- with(big, table(
+        systhma = factor(systhma, levels=1:3, labels=c("IDIO", "KEYG", "PEDY")), 
+        nuts = factor(nuts, levels=1:4), 
+        yearweek))
+
 
 cat("\nΕξαγωγή ILI rate...\n")
 
-if (opts$oldAlgo) {
-
-    aggr1 <- aggregate(big[,c("etos", "ebdo", "ast_p_nu", "agr_p_nu", "as_p_nu1", "ag_p_nu1", "as_p_nu2", "ag_p_nu2")], by=list(astikot=big$astikot, nuts=big$nuts, yearweek=big$yearweek), mean, na.rm=TRUE)
-
-    aggr2 <- aggregate(big[,c("totvis", "gritot")], by=list(astikot=big$astikot, nuts=big$nuts, yearweek=big$yearweek), sum, na.rm=TRUE)
-
-    aggr2$gritot[is.na(aggr2$gritot)] = 0
-    aggr2$gri <- (aggr2$gritot/aggr2$totvis)*1000
-    aggr2$gri[is.na(aggr2$gri)] = 0
-
-    aggr2$gri_w <- ifelse(aggr2$astikot==1,
-    (aggr2$gritot/aggr2$totvis)*1000*aggr1$ast_p_nu,
-    (aggr2$gritot/aggr2$totvis)*1000*aggr1$agr_p_nu)
-    aggr2$gri_w[is.na(aggr2$gri_w)] = 0
-
-    aggr2$gri_w_var <- ifelse(aggr2$astikot==1,
-    ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$ast_p_nu)^2,
-    ((aggr2$gritot/aggr2$totvis)*(1-aggr2$gritot/aggr2$totvis)/aggr2$totvis)*(1000*aggr1$agr_p_nu)^2)
-    aggr2$gri_w_var[is.na(aggr2$gri_w_var)] = 0
-
-    aggr2$gri_w1 <- ifelse(aggr2$astikot==1,
-    (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu1,
-    (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu1)
-    aggr2$gri_w1[is.na(aggr2$gri_w1)] = 0
-
-    aggr2$gri_w2 <- ifelse(aggr2$astikot==1,
-    (aggr2$gritot/aggr2$totvis)*1000*aggr1$as_p_nu2,
-    (aggr2$gritot/aggr2$totvis)*1000*aggr1$ag_p_nu2)
-    aggr2$gri_w2[is.na(aggr2$gri_w2)] = 0
 
 
-    aggr3 <- aggregate(aggr2[,c("gri_w","gritot","totvis","gri_w_var")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
-    
-} else {
+resMainModelOld <- fitMainModel(big, NUTSpop, verbose=TRUE)
+descrByWeekOld <- aggrByWeek(big)
 
-  sntBigOld <- big
-  if (opts$weeksRecalc>0) {
-    sntBigOld <- subset(sntBigOld, yearweek >= isoweek(isoweekStart(tgtweek)-opts$weeksRecalc*7, "both_num"))
-  }
+resOld <- merge(resMainModelOld, descrByWeekOld)
 
-  # Adjust records (if missing ILI cases replace with 0)
-  sntBigOld$gritot[is.na(sntBigOld$gritot)] <- 0   # If ILI cases missing, set to zero
-  sntBigOld <- subset(sntBigOld, !is.na(totvis) & totvis>0)   # Discard if total visits zero or missing
-
-  # Aggregate ILI cases & total visits per stratum and per yearweek
-  aggr1a <- aggregate(sntBigOld[,c("totvis", "gritot")], by=list(astikot=sntBigOld$astikot, nuts=sntBigOld$nuts, yearweek=sntBigOld$yearweek), sum, na.rm=TRUE)
-
-  suppressWarnings({   # Don't echo glmer warnings
-    aggr1b <- by(sntBigOld, 
-      list(astikot=sntBigOld$astikot, nuts=sntBigOld$nuts, yearweek=sntBigOld$yearweek), 
-        function(x) {
-          last_one_threw_a_warning <- 0
-          wHandler <- function(w) { last_one_threw_a_warning <<- 1 }
-          if (sum(x$gritot)==0) {
-            gri <- 0; gri.sd <- 0
-          } else {
-            if (nrow(x)==1) {
-              m1 <- glm(gritot ~ 1, data=x, offset=log(totvis), family="poisson")
-              od <- sum(m1$weights * m1$residuals^2)/m1$df.r
-              gri <- unname(exp(coef(m1))*1000)
-              gri.sd <- unname(sqrt(vcov(m1)))
-            } else {
-              mm <- withCallingHandlers(
-                glmer(gritot ~ 1 + (1|codeiat), data=x, offset=log(totvis), family="poisson"), 
-                  warning = wHandler)
-              gri <- unname(1000*exp(fixef(mm)))
-              gri.sd <- unname(sqrt(vcov(mm)[1]))
-            }
-          }
-          cat(".")
-          c(yearweek=x$yearweek[1], astikot=x$astikot[1], nuts=x$nuts[1], gri=gri,
-              ndocs=nrow(x), warn=last_one_threw_a_warning, gri.sd=gri.sd)
-        }
-    )
-  })
-
-  aggr2 <- merge(aggr1a, as.data.frame(do.call(rbind, aggr1b)))
-  aggr2$stratum <- with(aggr2, nuts*10 + astikot)
-  aggr2$prop <- NUTSpop$prop[match(aggr2$stratum, NUTSpop$stratum)]
-  aggr2$gri_w <- with(aggr2, gri*prop)
-  aggr2$gri_lw <- with(aggr2, log(gri+0.001)*prop)
-  aggr2$gri_lw_var <- with(aggr2, gri.sd^2 * prop^2)
-  
-  aggr3 <- aggregate(aggr2[,c("gri_lw","gritot","totvis", "gri_lw_var")],by=list(yearweek=aggr2$yearweek), sum, na.rm=TRUE)
-  aggr3$gri_w <- exp(aggr3$gri_lw)
-  aggr3$gri_w_var <- exp(aggr3$gri_lw_var)
-  aggr3 <- aggr3[,c("yearweek","gri_w","gritot","totvis", "gri_w_var")]
-
-}
-
-aggr3 <- subset(aggr3, yearweek>200427 & yearweek<210000)
-
-aggr3 <- merge(aggr3, subset(data.frame(yearweek=as.integer(rownames(doc_rep)), pa=doc_rep[,1], pd=doc_rep[,2]), yearweek>200427 & yearweek<210000), by.x="yearweek")
 
 # Υπολογισμός "εκτιμώμενου" συνολικού πληθυσμού
 # (Πρώην excelάκι Κατερέλου-Καλαμάρα, βάσει του οποίου δηλώνουμε στο TESSy)
-if (file.exists(paste(path_input,"abcland.csv",sep=""))) {
-  abcland <- read.csv2(paste(path_input,"abcland.csv",sep=""),header=FALSE)
-  aggr3$"Εκτιμώμενος πληθυσμιακός παρονομαστής (σύνολο)" <- round((aggr3$pa/abcland[1,2]*sum(abcland[5:6,2])) + (aggr3$pd/abcland[2,2]*sum(abcland[3:4,2])))
-  }
+abcland <- read.csv2(paste(path_input,"abcland.csv",sep=""),header=FALSE)
+resOld$popest <- round(
+        (resOld$pa/abcland[1,2]*sum(abcland[5:6,2])) + 
+        (resOld$pd/abcland[2,2]*sum(abcland[3:4,2])))
 
-ratechart <- aggr3$gri_w
-names(ratechart) <- aggr3$yearweek
-rownames(aggr3) <- aggr3$yearweek
-aggr3$yearweek <- NULL
-aggr3$gri_w <- round(aggr3$gri_w,2)
-colnames(aggr3)[1:6] <- c("ILI rate", "αρ. γριπωδών συνδρομών", "αρ. επισκέψεων", "ILI rate variance", "Παθολόγοι / Γεν.ιατροί που δήλωσαν", "Παιδίατροι που δήλωσαν")
 
-# Trim-άρισμα του ratechart
-for (i in length(ratechart):1)
-  if (ratechart[i]!=0 || as.integer(names(ratechart[i]))==tgtweek) { ratechart <- ratechart[1:i]; break }
+# Σώζουμε τα αποτελέσματα
+save(resOld, plirotites_eidikotita_old, plirotites_nuts_old, 
+        file=paste(path_input, "oldSentinel.RData", sep=""))
 
 
 cat("\nΤέλος! Συνεχίζουμε με την επεξεργασία των δεδομένων του NEOY sentinel...\n\n")
