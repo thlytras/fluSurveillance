@@ -153,24 +153,63 @@ diax_graph <- function(years,col="darkred") {
   axis(2, at=seq(0,limrate,by=10), labels=seq(0,limrate,by=10))
 }
 
+
+# Συνάρτηση για μετατροπή χρώματος σε διαφανές
+# (χρησιμοποιείται στη συνάρτηση sentinel_graph() )
+addalpha <- function(colors, alpha=1.0) {
+    r <- col2rgb(colors, alpha=T)
+    # Apply alpha
+    r[4,] <- alpha*255
+    r <- r/255.0
+    return(rgb(r[1,], r[2,], r[3,], r[4,]))
+  }
+
 # Γράφημα που δείχνει μία περίοδο γρίπης (εβδ. 40 έως εβδ. 20)
-# NEA συνάρτηση, με δυνατότητα δεύτερου scaled άξονα y. (Βλέπε README.html για οδηγίες χρήσης).
 sentinel_graph <- function(years, col=rainbow(length(years)), 
 	yaxis2=NA, mult=1, ygrid=0, lty=rep(1,length(years)), lwd=rep(1,length(years)),
 	ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις",
-	ylab2=NA, ylab2rot=TRUE, ci=FALSE)
+	ylab2=NA, ylab2rot=TRUE, ci=FALSE, alpha=0)
 {
+  drawCI <- function(i) {
+    if (ci[i]) {
+      if (alpha[i]==0) {
+        plotCI(set[,i], 
+            ui=exp(log(set[,i]) + 1.96*set_logsd[,i]),
+            li=exp(log(set[,i]) - 1.96*set_logsd[,i]), 
+            col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
+      } else {
+        if (NA %in% set[,i]) {
+          temp <- set[,i][1:(match(NA, set[,i])-1)]
+          temp_logsd <- set_logsd[,i][1:(match(NA, set[,i])-1)]
+          polygon(x=c(1:length(temp), length(temp):1),
+                y=c(exp(log(temp) - 1.96*temp_logsd), rev(exp(log(temp) + 1.96*temp_logsd))),
+                col=addalpha(col[i], alpha[i]), border=NA)
+          temp <- set[,i][(match(NA, set[,i])+1):length(set[,i])]
+          temp_logsd <- set_logsd[,i][(match(NA, set[,i])+1):length(set[,i])]
+          polygon(x=c(1:length(temp), length(temp):1) + match(NA, set[,i]),
+                y=c(exp(log(temp) - 1.96*temp_logsd), rev(exp(log(temp) + 1.96*temp_logsd))),                col=addalpha(col[i], alpha[i]), border=NA)
+        } else {
+          polygon(x=c(1:length(set[,i]), length(set[,i]):1),
+                y=c(exp(log(set[,i]) - 1.96*set_logsd[,i]), rev(exp(log(set[,i]) + 1.96*set_logsd[,i]))),
+                col=addalpha(col[i], alpha[i]), border=NA)
+        }
+      }
+    }
+  }
   ratechart <- resAll$gri; names(ratechart) <- resAll$yearweek
-  ratechart_var <- resAll$log.gri.sd; names(ratechart_var) <- resAll$yearweek
+  ratechart_logsd <- resAll$log.gri.sd; names(ratechart_logsd) <- resAll$yearweek
   if(length(ci)==1) ci <- rep(ci, length(years))
+  if(length(alpha)==1) alpha <- rep(alpha, length(years))
   maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(years,"-12-31",sep="")))==53))>0, 53, 52)
   set <- sapply(years, function(x){ratechart[as.character(c((x*100+40):(x*100+maxwk),((x+1)*100+1):((x+1)*100+20)))]})
-  set_var <- sapply(years, function(x){ratechart_var[as.character(c((x*100+40):(x*100+maxwk),((x+1)*100+1):((x+1)*100+20)))]})
-  limrate <- (max(set,na.rm=TRUE)%/%10+2)*10
+  set_logsd <- sapply(years, function(x){ratechart_logsd[as.character(c((x*100+40):(x*100+maxwk),((x+1)*100+1):((x+1)*100+20)))]})
+  maxes <- sapply(1:ncol(set), function(i){
+    max(exp(log(set[,i]) + ci[i]*1.96*set_logsd[,i]), na.rm=TRUE)
+  })
+  limrate <- (max(maxes, na.rm=TRUE)%/%10+2)*10
   if(!is.na(yaxis2[1])) {
     i2 <- match(yaxis2, years)
     i1 <- (1:length(years))[-match(yaxis2,years)]
-    maxes <- apply(set, 2, max, na.rm=TRUE)
     maxes[i2] <- maxes[i2]/mult
     limrate <- (max(maxes, na.rm=TRUE)%/%10+2)*10
     limrate2 <- limrate*mult
@@ -189,12 +228,7 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
   if (!is.na(yaxis2[1])) {
     sapply(i1, function(i){
       points(set[,i], type="o", col=col[i], lwd=2, pch=16)
-      if (ci[i]) {
-        plotCI(set[,i], 
-            ui=exp(log(set[,i]) + 1.96*sqrt(set_var[,i])),
-            li=exp(log(set[,i]) - 1.96*sqrt(set_var[,i])), 
-            col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
-      }
+      drawCI(i)
     })
     par(new=TRUE)
     plot(0, type="n", bty="u", xaxt="n", yaxt="n", ylim=c(0,limrate2), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=NA, xlab=NA)
@@ -207,12 +241,7 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
     }
     sapply(i2, function(i){
       points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, lty=lty[i], cex=lwd[i])
-      if (ci[i]) {
-        plotCI(set[,i], 
-            ui=exp(log(set[,i]) + 1.96*sqrt(set_var[,i])),
-            li=exp(log(set[,i]) - 1.96*sqrt(set_var[,i])), 
-            col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
-      }
+      drawCI(i)
     })
     axis(4)
     # Οι γραμμές του αριστερού y άξονα θέλουμε να βρίσκονται σε πρώτο πλάνο.
@@ -220,22 +249,12 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
     plot(0, type="n", axes=FALSE, ylim=c(0,limrate), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=NA, xlab=NA)
     sapply(i1, function(i){
       points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, cex=lwd[i])
-      if (ci[i]) {
-        plotCI(set[,i], 
-            ui=exp(log(set[,i]) + 1.96*sqrt(set_var[,i])),
-            li=exp(log(set[,i]) - 1.96*sqrt(set_var[,i])), 
-            col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
-      }
+      drawCI(i)
     })
   } else {
     sapply(1:length(years), function(i){
       points(set[,i], type="o", col=col[i], lwd=2*lwd[i], pch=16, lty=lty[i], cex=lwd[i])
-      if (ci[i]) {
-        plotCI(set[,i], 
-            ui=exp(log(set[,i]) + 1.96*sqrt(set_var[,i])),
-            li=exp(log(set[,i]) - 1.96*sqrt(set_var[,i])), 
-            col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
-      }
+      drawCI(i)
     })
   }
   return()
