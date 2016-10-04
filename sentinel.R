@@ -360,15 +360,15 @@ if (is.na(graphtype)) {
   #ytp <- c(tgtyear-2, tgtyear-1,tgtyear)
   ytp <- c(tgtyear-1, tgtyear) # Προσωρινή τροποποίηση για φέτος (θα δείχνουμε μόνο 2 χρονιές)
   if (sum(ytp>=2014)>0 & sum(ytp>=2014)<length(ytp)) {
-    sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), ci=ciInPlot,
-      yaxis2=ytp[ytp<2014], mult=1/5, 
+    sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), 
+      ci=ciInPlot, alpha=c(0.1,0.15), yaxis2=ytp[ytp<2014], mult=1/5, 
       ylab=paste("Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Νέο σύστημα επιτήρησης, ",
         paste(paste(ytp[ytp>=2014],"-",ytp[ytp>=2014]+1,sep=""), collapse=", "), ")", sep=""),
       ylab2=paste("Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Παλιό σύστημα επιτήρησης, ",
         paste(paste(ytp[ytp<2014],"-",ytp[ytp<2014]+1,sep=""), collapse=", "), ")", sep=""))
   } else {
-    #sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), ci=ciInPlot)
-    sentinel_graph(ytp, col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot) # Προσωρινή τροποποίηση για φέτος (θα δείχνουμε μόνο 2 χρονιές)
+    #sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), ci=ciInPlot, alpha=c(0.1,0.15))
+    sentinel_graph(ytp, col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.1,0.15)) # Προσωρινή τροποποίηση για φέτος (θα δείχνουμε μόνο 2 χρονιές)
   }
   dev.off()
   
@@ -392,11 +392,11 @@ if (graphtype=="ps") system(paste("ps2eps -f ", path_output, "*.ps", sep=""), ig
 
 # Επεξεργασία των πινάκων πληρότητας
 if(tgtweek>=201440) {
-  plirotita_eidikotita <- plirotites_eidikotita[,,as.character(tgtweek)]
-  plirotita_nuts <- plirotites_nuts[,,as.character(tgtweek)]
+  plirotita_eidikotita <- plirotites_eidikotita[,,match(as.character(tgtweek), dimnames(plirotites_eidikotita)$yearweek)]
+  plirotita_nuts <- plirotites_nuts[,,match(as.character(tgtweek), dimnames(plirotites_nuts)$yearweek)]
 } else {
-  plirotita_eidikotita <- plirotites_eidikotita_old[,,as.character(tgtweek)]
-  plirotita_nuts <- plirotites_nuts_old[,,as.character(tgtweek)]
+  plirotita_eidikotita <- plirotites_eidikotita_old[,,match(as.character(tgtweek), dimnames(plirotites_eidikotita_old)$yearweek)]
+  plirotita_nuts <- plirotites_nuts_old[,,match(as.character(tgtweek), dimnames(plirotites_nuts_old)$yearweek)]
 }
 # Υπολογίζουμε μερικά αθροίσματα
 plirotita_eidikotita<-cbind(plirotita_eidikotita,rowSums(plirotita_eidikotita))
@@ -430,7 +430,7 @@ cat("ΙΚΑ Αμαρουσίου: "); cat(msg_marousi[1]); cat(msg_marousi[2]); 
 showgri<-function(yweek) {
   result <- t(subset(resAll, yearweek==yweek)[,c("gritot","totvis")])
   rownames(result) <- c("Σύνολο γριπωδών συνδρομών","Σύνολο επισκέψεων")
-  colnames(result) <- "#"
+  if (ncol(result)>1) colnames(result) <- "#"
   result
   }
 
