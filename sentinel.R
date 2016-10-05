@@ -123,7 +123,7 @@ repeat {
 
 repeat {
   if(interactive()) {
-    input<-readline(paste("\nΘέλετε διαστήματα εμπιστοσύνης στις καμπύλες?\n (1=Όχι, 2=Ναι, 3=Μόνο τελευταία χρονιά) [1] ",sep=""))
+    input<-readline(paste("\nΘέλετε διαστήματα εμπιστοσύνης στις καμπύλες?\n (1=Όχι, 2=Ναι) [1] ",sep=""))
   } else {
     input <- commandArgs(TRUE)[3]
     if (is.na(input) || input=="-") input <- ""
@@ -134,7 +134,6 @@ repeat {
     if (is.na(input)) input <- 0
     if (input==1) { ciInPlot <- FALSE; break }
     if (input==2) { ciInPlot <- TRUE; break }
-    if (input==3) { ciInPlot <- c(FALSE, FALSE, TRUE); break }
     if (interactive()) {
       cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
     } else {
@@ -294,8 +293,7 @@ if(tgtweek>=201440) {
 }
 
 
-cat("\nΕξαγωγή ILI rate...\n")
-
+cat("\nΕξαγωγή ILI rate (βασικό μοντέλο)...\n")
 
 limweek <- 201439
 if (opts$weeksRecalc>0 & file.exists(paste(path_output, "res.RData", sep=""))) {
@@ -304,15 +302,22 @@ if (opts$weeksRecalc>0 & file.exists(paste(path_output, "res.RData", sep=""))) {
   load(paste(path_output, "res.RData", sep=""))
   limweek <- min(limweek, max(res$yearweek))
   resOld <- rbind(resOld, subset(res, yearweek<=limweek))
+  resNutsOld <- rbind(resNutsOld, subset(resNuts, yearweek<=limweek))
+  resAstyOld <- rbind(resAstyOld, subset(resAsty, yearweek<=limweek))
 }
-
 resMainModel <- fitMainModel(subset(sentinelBig, yearweek>limweek), NUTSpop, verbose=TRUE)
 descrByWeek <- aggrByWeek(subset(sentinelBig, yearweek>limweek))
-
 res <- merge(resMainModel, descrByWeek)
+
+cat("\nΕξαγωγή ILI rate (κατά NUTS 1)...\n")
+resNuts <- fitGroupModel("nuts", subset(sentinelBig, yearweek>limweek), NUTSpop, verbose=TRUE)
+cat("\nΕξαγωγή ILI rate (κατά αστικότητα)...\n")
+resAsty <- fitGroupModel("asty", subset(sentinelBig, yearweek>limweek), NUTSpop, verbose=TRUE)
+
 
 doc_rep_new <- with(sentinelBig,table(yearweek,neweid2)) # Με χωριστά τους ιατρούς των ΚΥ
 doc_rep_new <- doc_rep_new[as.character(res$yearweek), , drop=FALSE]
+
 
 # Υπολογισμός "εκτιμώμενου" συνολικού πληθυσμού
 # (Πρώην excelάκι Κατερέλου-Καλαμάρα, βάσει του οποίου δηλώνουμε στο TESSy)
@@ -326,6 +331,10 @@ res$popest <- round(
 
 resAll <- rbind(resOld, res) # Συνένωση με τα αποτελέσματα του παλιού sentinel
 res <- subset(resAll, yearweek>=201439)
+resNutsAll <- rbind(resNutsOld, resNuts)
+resNuts <- subset(resNutsAll, yearweek>=201439)
+resAstyAll <- rbind(resAstyOld, resAsty)
+resAsty <- subset(resAstyAll, yearweek>=201439)
 
 
 # ******** ΕΞΑΓΩΓΗ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ********
@@ -373,16 +382,16 @@ if (is.na(graphtype)) {
   dev.off()
   
   eval(parse(text=graphCalls[2]))
-  diax_graph(diaxyear)
+  diax_graph(diaxyear, ci=ciInPlot, alpha=0.25)
   dev.off()
   
-#  eval(parse(text=graphCalls[3]))
-#  sentinelGraphBySystem(tgtyear, ci=TRUE)
-#  dev.off()
+  eval(parse(text=graphCalls[3]))
+  sentinelGraphByGroup(resAstyAll, tgtyear, ci=ciInPlot)
+  dev.off()
 
-#  eval(parse(text=graphCalls[4]))
-#  sentinelGraphByNUTS(tgtyear, ci=TRUE)
-#  dev.off()
+  eval(parse(text=graphCalls[4]))
+  sentinelGraphByGroup(resNutsAll, tgtyear, ci=ciInPlot)
+  dev.off()
 
 }
 
@@ -413,7 +422,7 @@ colnames(plirotita_nuts) <- c("Βόρεια Ελλάδα", "Κεντρική Ε�
 cat("\nΑποθήκευση ανάλυσης...\n")
 
 write.csv2(resAll, file = paste(path_output,"ratechart.csv",sep=""))
-save(res, file = paste(path_output,"res.RData",sep=""))
+save(res, resNuts, resAsty, file = paste(path_output,"res.RData",sep=""))
 
 write.csv2(plirotita_nuts,paste(path_output,"plirotita_nuts_",tgtweek,".csv",sep=""))
 write.csv2(plirotita_eidikotita,paste(path_output,"plirotita_eidikotita_",tgtweek,".csv",sep=""))

@@ -1,4 +1,4 @@
 calculateOld	0
 noDelayed	0
 repLimDay	3
-weeksRecalc 5
+weeksRecalc 15

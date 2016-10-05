@@ -129,10 +129,15 @@ aggrByWeek <- function(big) {
 
 
 # Γράφημα για διαχρονική τάση του rate
-diax_graph <- function(years,col="darkred") {
+diax_graph <- function(years, col="darkred", ci=FALSE, alpha=0.25) {
   ratechart <- resAll$gri; names(ratechart) <- resAll$yearweek
   set <- ratechart[names(ratechart)>=years[1] & names(ratechart)<=years[2]]
   limrate <- (max(set,na.rm=TRUE)%/%20+1)*20
+  if (ci) {
+    ratechart_logsd <- resAll$log.gri.sd; names(ratechart_logsd) <- resAll$yearweek
+    set_logsd <- ratechart_logsd[names(ratechart_logsd)>=years[1] & names(ratechart_logsd)<=years[2]]
+    limrate <- (max(exp(log(set) + 1.96*set_logsd),na.rm=TRUE)%/%20+1)*20
+  }
   labelsel <- c()
   labelsel[1] = ((years[1]%/%100)+1)*100+1
   labelsel[2] = (years[2]%/%100)*100+1
@@ -151,7 +156,13 @@ diax_graph <- function(years,col="darkred") {
   points(set, type="l", lwd=2, col=col)
   axis(1, at=labelpos[as.character(labelsel)], labels=paste(labelsel%/%100,sprintf("%02d",labelsel%%100),sep="-"), las=3)
   axis(2, at=seq(0,limrate,by=10), labels=seq(0,limrate,by=10))
+  if (ci) {
+    drawBand(x=1:length(set), col=addalpha(col, alpha),
+        y.lo=exp(log(set) - 1.96*set_logsd),
+        y.hi=exp(log(set) + 1.96*set_logsd))
+  }
 }
+
 
 
 # Συνάρτηση για μετατροπή χρώματος σε διαφανές
@@ -164,11 +175,25 @@ addalpha <- function(colors, alpha=1.0) {
     return(rgb(r[1,], r[2,], r[3,], r[4,]))
   }
 
+drawBand <- function(x, y.lo, y.hi, col) {
+  if (length(x)!=length(y.lo) || length(x)!=length(y.hi)) {
+    stop("Arguments x, y.lo, y.hi must have the same length")
+  }
+  for (i in 1:length(x)) {
+    if (sum(is.na(c(y.lo[i:(i+1)], y.hi[i:(i+1)])))==0) {
+      polygon(x=x[i+c(0,1,1,0)], y=c(y.lo[i:(i+1)], y.hi[(i+1):i]), col=col, border=NA)
+    } else if (sum(is.na(c(y.lo[i], y.hi[i])))==0 && (i==1 || sum(is.na(c(y.lo[i-1], y.hi[i-1])))>0)) {
+      polygon(x=x[c(i,i)], y=c(y.lo[i], y.hi[i]), col=col, border=col)
+    }
+  }
+}
+
+
 # Γράφημα που δείχνει μία περίοδο γρίπης (εβδ. 40 έως εβδ. 20)
 sentinel_graph <- function(years, col=rainbow(length(years)), 
 	yaxis2=NA, mult=1, ygrid=0, lty=rep(1,length(years)), lwd=rep(1,length(years)),
 	ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις",
-	ylab2=NA, ylab2rot=TRUE, ci=FALSE, alpha=0)
+	ylab2=NA, ylab2rot=TRUE, ci=FALSE, alpha=0.1)
 {
   drawCI <- function(i) {
     if (ci[i]) {
@@ -178,21 +203,9 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
             li=exp(log(set[,i]) - 1.96*set_logsd[,i]), 
             col=col[i], sfrac=0.005, cex=0.01, xpd=TRUE, add=TRUE)
       } else {
-        if (NA %in% set[,i]) {
-          temp <- set[,i][1:(match(NA, set[,i])-1)]
-          temp_logsd <- set_logsd[,i][1:(match(NA, set[,i])-1)]
-          polygon(x=c(1:length(temp), length(temp):1),
-                y=c(exp(log(temp) - 1.96*temp_logsd), rev(exp(log(temp) + 1.96*temp_logsd))),
-                col=addalpha(col[i], alpha[i]), border=NA)
-          temp <- set[,i][(match(NA, set[,i])+1):length(set[,i])]
-          temp_logsd <- set_logsd[,i][(match(NA, set[,i])+1):length(set[,i])]
-          polygon(x=c(1:length(temp), length(temp):1) + match(NA, set[,i]),
-                y=c(exp(log(temp) - 1.96*temp_logsd), rev(exp(log(temp) + 1.96*temp_logsd))),                col=addalpha(col[i], alpha[i]), border=NA)
-        } else {
-          polygon(x=c(1:length(set[,i]), length(set[,i]):1),
-                y=c(exp(log(set[,i]) - 1.96*set_logsd[,i]), rev(exp(log(set[,i]) + 1.96*set_logsd[,i]))),
-                col=addalpha(col[i], alpha[i]), border=NA)
-        }
+        drawBand(x=1:length(set[,i]), col=addalpha(col[i], alpha[i]),
+            y.lo=exp(log(set[,i]) - 1.96*set_logsd[,i]),
+            y.hi=exp(log(set[,i]) + 1.96*set_logsd[,i]))
       }
     }
   }
@@ -259,3 +272,132 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
   }
   return()
 }
+
+
+
+
+fitGroupModel <- function(grp, big, NUTSpop, verbose=FALSE, returnModels=FALSE) {
+  # grp must be one of "asty", "nuts"
+    if (!(grp %in% c("asty", "nuts"))) stop("Argument 'grp' must be one of \"asty\", \"nuts\".")
+  # Match stratum information
+    big$stratum <- with(big, paste(nuts, astikot, sep=""))
+    big$prop <- NUTSpop$prop[match(big$stratum, NUTSpop$stratum)]
+  # Adjust records (if missing ILI cases replace with 0)
+    big$gritot[is.na(big$gritot)] <- 0   # If ILI cases missing, set to zero
+    big <- subset(big, !is.na(totvis) & totvis>0)   # Discard if total visits zero or missing
+    if (grp=="asty") {
+      big$grp <- factor(big$astikot, levels=1:2)
+      prop_key <- with(NUTSpop, tapply(prop, astikot, sum))
+    } else {
+      big$grp <- factor(big$nuts, levels=1:4)
+      prop_key <- with(NUTSpop, tapply(prop, nuts, sum))
+    }
+  # Fit the models
+    suppressWarnings({   # Don't echo glmer warnings
+      aggrm <- lapply(sort(unique(big$yearweek)), function(w) {
+        x <- subset(big, yearweek==w)
+        x$prop2 <- x$prop / prop_key[x$grp] / table(x$stratum)[x$stratum]
+        if (verbose) cat(".")
+        x$wgt <- x$prop2 * table(x$grp)[x$grp]
+        if (length(levels(factor(x$grp)))==1) {
+          # If all but one grp levels are missing, fit an intercept-only model
+          # (otherwise we would get an error....)
+            m <- glmer(gritot ~ 1 + (1|stratum) + (1|codeiat), 
+              offset=log(totvis), data=x, family="poisson", weights=wgt)
+            attr(m, "fi") <- as.integer(levels(factor(x$grp)))
+        } else {
+            m <- glmer(gritot ~ -1 + grp + (1|stratum) + (1|codeiat), 
+              offset=log(totvis), data=x, family="poisson", weights=wgt)
+          # If convergence warnings, try "bobyqa" optimizer
+          if (length(summary(m)$optinfo$conv$lme4) > 0) {
+            m <- glmer(gritot ~ -1 + grp + (1|stratum) + (1|codeiat), 
+              offset=log(totvis), data=x, family="poisson", weights=wgt,
+              control=glmerControl(optimizer="bobyqa"))
+          }
+          # If still convergence warnings, set calc.derivs=FALSE
+          if (length(summary(m)$optinfo$conv$lme4) > 0) {
+            m <- glmer(gritot ~ -1 + grp + (1|stratum) + (1|codeiat), 
+              offset=log(totvis), data=x, family="poisson", weights=wgt,
+              control=glmerControl(calc.derivs=FALSE))
+          }
+        }
+        return(m)
+        })
+    })
+    names(aggrm) <- sort(unique(big$yearweek))
+  # Extract point estimate (**exp**, per 1000) and **log**SD
+    ncat <- c("asty"=2, "nuts"=4)[grp]
+    res <- as.data.frame.matrix(t(sapply(aggrm, function(m) {
+      if (length(fixef(m))==1) {
+        return(c(rep(NA, (attr(m,"fi")-1)), 
+            1000*exp(fixef(m)), rep(NA,ncat-1), sqrt(diag(vcov(m))), 
+            rep(NA, (ncat-attr(m,"fi")))))
+      } else {
+        return(c(
+            unname(1000*exp(fixef(m)[paste("grp",1:ncat,sep="")])), 
+            unname(coef(summary(m))[,2][paste("grp",1:ncat,sep="")])
+        ))
+      }
+    })))
+    names(res) <- c(paste("gri", 1:ncat, sep=""), paste("log.gri.sd", 1:ncat, sep=""))
+    res$yearweek <- sort(unique(big$yearweek))
+    if (returnModels) { attr(res, "aggrm") <- aggrm }
+    attr(res, "grp") <- grp
+    res
+}
+
+
+
+
+# Γράφημα με το ILI rate ομαδοποιημένο κατά NUTS ή αστικότητα (για μία μόνο χρονιά)
+sentinelGraphByGroup <- function(resGrp, year, ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις", ygrid=0, pal=c("magenta", "dodgerblue3", "orange", "green"), ci=FALSE, plot=TRUE, alpha=0.1)
+{
+  ncat <- (ncol(resGrp)-1)/2
+  if (length(ci)==1) ci <- rep(ci, ncat)
+  if (length(alpha)==1) alpha <- rep(alpha, ncat)
+  if (length(plot)==1) plot <- rep(plot, ncat)
+  maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(year,"-12-31",sep="")))==53))>0, 53, 52)
+  ywk <- as.character(c((year*100+40):(year*100+maxwk),((year+1)*100+1):((year+1)*100+20)))
+  set <- resGrp[ywk,match(paste("gri",1:ncat,sep=""), names(resGrp))]
+  set_logsd <- resGrp[ywk,match(paste("log.gri.sd",1:ncat,sep=""), names(resGrp))]
+  limrate <- (max(sapply(1:ncol(set), function(i)max(exp(log(set[,i]) + 1.96*set_logsd[,i]*ci[i])*plot[i], na.rm=TRUE))) %/% 10 + 2) * 10
+  par(mar=c(5.1,4.1+grepl("\n",ylab),2.1,2.1))
+  plot(0, type="n", bty="l", xaxt="n", ylim=c(0,limrate), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=ylab, xlab="Εβδομάδα")
+  axis(1, at=1:(maxwk-19), labels=NA)
+  mtext(c(40:maxwk,1:20), side=1, at=1:(maxwk-19), cex=0.7, line=0.5)
+  if (!is.na(ygrid)) {
+    if (ygrid==0)
+      ygrid <- ifelse(limrate<120, 10, 20)
+    abline(h=seq(0,limrate,by=ygrid), lty=3, col="lightgrey")
+    abline(v=1:(maxwk-19), lty=3, col="lightgrey")
+  }
+  pal <- pal[1:ncat]
+  jitf <- 0.10 * c(0, 0, 1, -1, 0)
+  pallwd <- c(rep(2, 4), 3)
+  sapply(1:ncol(set), function(i){
+    if (plot[i]) {
+      points(1:(maxwk-19) + jitf[i]*ci[i]*(alpha[i]==0),  set[,i], type="l", col=pal[i], lwd=pallwd)
+      if (ci[i]==TRUE) {
+        if (alpha[i]==0) {
+          plotCI(1:(maxwk-19) + jitf[i]*ci[i], set[,i], 
+            ui=exp(log(set[,i]) + 1.96*set_logsd[,i]),
+            li=exp(log(set[,i]) - 1.96*set_logsd[,i]), 
+            col=pal[i], sfrac=0.005, pch=19, cex=0.6, add=TRUE)
+        } else {
+          drawBand(x=1:(maxwk-19), col=addalpha(pal[i], alpha[i]),
+            y.lo = exp(log(set[,i]) - 1.96*set_logsd[,i]),
+            y.hi = exp(log(set[,i]) + 1.96*set_logsd[,i]))
+        }
+      }
+    }
+  })
+  if (ncat==2) {
+    legend("topleft", c("Αστικές", "Αγροτικές")[plot], col=pal, lwd=pallwd, pt.cex=0.6, pch=19, inset=0.03, bg="white", box.col="white")
+  } else {
+    legend("topleft", c("NUTS1 - Βόρεια Ελλάδα", "NUTS2 - Κεντρική Ελλάδα", "NUTS3 - Αττική", "NUTS4 - Νησιά Αιγαίου & Κρήτη")[plot], col=pal, lwd=pallwd, pt.cex=0.6, pch=19, inset=0.03, bg="white", box.col="white")
+  }
+  return()
+}
+
+
+

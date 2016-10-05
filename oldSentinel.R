@@ -188,7 +188,7 @@ plirotites_nuts_old <- with(big, table(
         yearweek))
 
 
-cat("\nΕξαγωγή ILI rate...\n")
+cat("\nΕξαγωγή ILI rate (βασικό μοντέλο)...\n")
 
 
 
@@ -197,6 +197,10 @@ descrByWeekOld <- aggrByWeek(big)
 
 resOld <- merge(resMainModelOld, descrByWeekOld)
 
+cat("\nΕξαγωγή ILI rate (κατά NUTS 1)...\n")
+resNutsOld <- fitGroupModel("nuts", big, NUTSpop, verbose=TRUE)
+cat("\nΕξαγωγή ILI rate (κατά αστικότητα)...\n")
+resAstyOld <- fitGroupModel("asty", big, NUTSpop, verbose=TRUE)
 
 # Υπολογισμός "εκτιμώμενου" συνολικού πληθυσμού
 # (Πρώην excelάκι Κατερέλου-Καλαμάρα, βάσει του οποίου δηλώνουμε στο TESSy)
@@ -207,7 +211,8 @@ resOld$popest <- round(
 
 
 # Σώζουμε τα αποτελέσματα
-save(resOld, plirotites_eidikotita_old, plirotites_nuts_old, 
+save(resOld, resNutsOld, resAstyOld,
+        plirotites_eidikotita_old, plirotites_nuts_old, 
         file=paste(path_input, "oldSentinel.RData", sep=""))
 
 
