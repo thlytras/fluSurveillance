@@ -330,11 +330,11 @@ res$popest <- round(
     + 2*(doc_rep_new[,"5"]/abcdland[1,2]*sum(abcdland[3:4,2]))) # Παιδίατροι ΙΚΑ Αμαρουσίου. Πολλ/ζονται επί 2.
 
 resAll <- rbind(resOld, res) # Συνένωση με τα αποτελέσματα του παλιού sentinel
-res <- subset(resAll, yearweek>=201439)
+res <- subset(resAll, yearweek>201439)
 resNutsAll <- rbind(resNutsOld, resNuts)
-resNuts <- subset(resNutsAll, yearweek>=201439)
+resNuts <- subset(resNutsAll, yearweek>201439)
 resAstyAll <- rbind(resAstyOld, resAsty)
-resAsty <- subset(resAstyAll, yearweek>=201439)
+resAsty <- subset(resAstyAll, yearweek>201439)
 
 
 # ******** ΕΞΑΓΩΓΗ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ********
