@@ -305,19 +305,12 @@ if (opts$weeksRecalc>0 & file.exists(paste(path_output, "res.RData", sep=""))) {
   resNutsOld <- rbind(resNutsOld, subset(resNuts, yearweek<=limweek))
   resAstyOld <- rbind(resAstyOld, subset(resAsty, yearweek<=limweek))
 }
-resMainModel <- fitMainModel(subset(sentinelBig, yearweek>limweek), NUTSpop, verbose=TRUE)
-descrByWeek <- aggrByWeek(subset(sentinelBig, yearweek>limweek))
+resMainModel <- fitMainModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, verbose=TRUE)
+descrByWeek <- aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek))
 res <- merge(resMainModel, descrByWeek)
-
-cat("\nΕξαγωγή ILI rate (κατά NUTS 1)...\n")
-resNuts <- fitGroupModel("nuts", subset(sentinelBig, yearweek>limweek), NUTSpop, verbose=TRUE)
-cat("\nΕξαγωγή ILI rate (κατά αστικότητα)...\n")
-resAsty <- fitGroupModel("asty", subset(sentinelBig, yearweek>limweek), NUTSpop, verbose=TRUE)
-
 
 doc_rep_new <- with(sentinelBig,table(yearweek,neweid2)) # Με χωριστά τους ιατρούς των ΚΥ
 doc_rep_new <- doc_rep_new[as.character(res$yearweek), , drop=FALSE]
-
 
 # Υπολογισμός "εκτιμώμενου" συνολικού πληθυσμού
 # (Πρώην excelάκι Κατερέλου-Καλαμάρα, βάσει του οποίου δηλώνουμε στο TESSy)
@@ -331,10 +324,23 @@ res$popest <- round(
 
 resAll <- rbind(resOld, res) # Συνένωση με τα αποτελέσματα του παλιού sentinel
 res <- subset(resAll, yearweek>201439)
+
+
+cat("\nΕξαγωγή ILI rate (κατά NUTS 1)...\n")
+resNuts <- fitGroupModel("nuts", subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, verbose=TRUE)
+cat("\nΕξαγωγή ILI rate (κατά αστικότητα)...\n")
+resAsty <- fitGroupModel("asty", subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, verbose=TRUE)
+
+
 resNutsAll <- rbind(resNutsOld, resNuts)
 resNuts <- subset(resNutsAll, yearweek>201439)
 resAstyAll <- rbind(resAstyOld, resAsty)
 resAsty <- subset(resAstyAll, yearweek>201439)
+
+cat("\nΑποθήκευση ανάλυσης...\n")
+
+write.csv2(resAll, file = paste(path_output,"ratechart.csv",sep=""))
+save(res, resNuts, resAsty, file = paste(path_output,"res.RData",sep=""))
 
 
 # ******** ΕΞΑΓΩΓΗ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ********
@@ -419,10 +425,7 @@ rownames(plirotita_nuts) <- c("Ιδιώτες", "ΚΥ", "ΙΚΑ", "Σύνολο"
 colnames(plirotita_nuts) <- c("Βόρεια Ελλάδα", "Κεντρική Ελλάδα", "Αττική", "Νησιά Αιγαίου & Κρήτη", "Σύνολο")
 
 
-cat("\nΑποθήκευση ανάλυσης...\n")
-
-write.csv2(resAll, file = paste(path_output,"ratechart.csv",sep=""))
-save(res, resNuts, resAsty, file = paste(path_output,"res.RData",sep=""))
+cat("\nΑποθήκευση συνόλου ανάλυσης...\n")
 
 write.csv2(plirotita_nuts,paste(path_output,"plirotita_nuts_",tgtweek,".csv",sep=""))
 write.csv2(plirotita_eidikotita,paste(path_output,"plirotita_eidikotita_",tgtweek,".csv",sep=""))

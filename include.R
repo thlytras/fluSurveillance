@@ -80,8 +80,11 @@ fitMainModel <- function(big, NUTSpop, verbose=FALSE, returnModels=FALSE) {
         x$prop2 <- x$prop / table(x$stratum)[x$stratum]
         if (verbose) cat(".")
         x$wgt <- x$prop2/sum(x$prop2)*nrow(x)
-        m <- glmer(gritot ~ 1 + (1|stratum) + (1|codeiat), 
+        err <- try({
+          m <- glmer(gritot ~ 1 + (1|stratum) + (1|codeiat), 
                 offset=log(totvis), data=x, family="poisson", weights=wgt)
+        }, silent=TRUE)
+        if (class(err)=="try-error") return(NA)
         # If convergence warnings, try "bobyqa" optimizer
           if (length(summary(m)$optinfo$conv$lme4) > 0) {
             m <- glmer(gritot ~ 1 + (1|stratum) + (1|codeiat), 
@@ -99,10 +102,13 @@ fitMainModel <- function(big, NUTSpop, verbose=FALSE, returnModels=FALSE) {
     })
     names(aggrm) <- sort(unique(big$yearweek))
   # Extract point estimate (**exp**, per 1000) and **log**SD
-    res <- as.data.frame.matrix(t(sapply(aggrm, function(m) c(
-                gri=unname(1000*exp(fixef(m))), 
-                log.gri.sd=unname(sqrt(vcov(m)[1]))
-    ))))
+    res <- as.data.frame.matrix(t(sapply(aggrm, function(m) {
+        if (class(m)=="glmerMod") {
+            c(gri=unname(1000*exp(fixef(m))), log.gri.sd=unname(sqrt(vcov(m)[1])) )
+        } else {
+            c(gri=NA, log.gri.sd=NA)
+        }
+    })))
     res$yearweek <- sort(unique(big$yearweek))
     if (returnModels) { attr(res, "aggrm") <- aggrm }
     res
@@ -217,7 +223,7 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
   set <- sapply(years, function(x){ratechart[as.character(c((x*100+40):(x*100+maxwk),((x+1)*100+1):((x+1)*100+20)))]})
   set_logsd <- sapply(years, function(x){ratechart_logsd[as.character(c((x*100+40):(x*100+maxwk),((x+1)*100+1):((x+1)*100+20)))]})
   maxes <- sapply(1:ncol(set), function(i){
-    max(exp(log(set[,i]) + ci[i]*1.96*set_logsd[,i]), na.rm=TRUE)
+    suppressWarnings(max(exp(log(set[,i]) + ci[i]*1.96*set_logsd[,i]), na.rm=TRUE))
   })
   limrate <- (max(maxes, na.rm=TRUE)%/%10+2)*10
   if(!is.na(yaxis2[1])) {
@@ -302,12 +308,18 @@ fitGroupModel <- function(grp, big, NUTSpop, verbose=FALSE, returnModels=FALSE) 
         if (length(levels(factor(x$grp)))==1) {
           # If all but one grp levels are missing, fit an intercept-only model
           # (otherwise we would get an error....)
+          err <- try({
             m <- glmer(gritot ~ 1 + (1|stratum) + (1|codeiat), 
               offset=log(totvis), data=x, family="poisson", weights=wgt)
-            attr(m, "fi") <- as.integer(levels(factor(x$grp)))
+          }, silent=TRUE)
+          if (class(err)=="try-error") return(NA)
+          attr(m, "fi") <- as.integer(levels(factor(x$grp)))
         } else {
+          err <- try({
             m <- glmer(gritot ~ -1 + grp + (1|stratum) + (1|codeiat), 
               offset=log(totvis), data=x, family="poisson", weights=wgt)
+          }, silent=TRUE)
+          if (class(err)=="try-error") return(NA)
           # If convergence warnings, try "bobyqa" optimizer
           if (length(summary(m)$optinfo$conv$lme4) > 0) {
             m <- glmer(gritot ~ -1 + grp + (1|stratum) + (1|codeiat), 
@@ -328,6 +340,9 @@ fitGroupModel <- function(grp, big, NUTSpop, verbose=FALSE, returnModels=FALSE) 
   # Extract point estimate (**exp**, per 1000) and **log**SD
     ncat <- c("asty"=2, "nuts"=4)[grp]
     res <- as.data.frame.matrix(t(sapply(aggrm, function(m) {
+      if (class(m)!="glmerMod") {
+        return(rep(NA, ncat*2))
+      }
       if (length(fixef(m))==1) {
         return(c(rep(NA, (attr(m,"fi")-1)), 
             1000*exp(fixef(m)), rep(NA,ncat-1), sqrt(diag(vcov(m))), 
@@ -360,7 +375,8 @@ sentinelGraphByGroup <- function(resGrp, year, ylab="Κρούσματα γριπ
   ywk <- as.character(c((year*100+40):(year*100+maxwk),((year+1)*100+1):((year+1)*100+20)))
   set <- resGrp[ywk,match(paste("gri",1:ncat,sep=""), names(resGrp))]
   set_logsd <- resGrp[ywk,match(paste("log.gri.sd",1:ncat,sep=""), names(resGrp))]
-  limrate <- (max(sapply(1:ncol(set), function(i)max(exp(log(set[,i]) + 1.96*set_logsd[,i]*ci[i])*plot[i], na.rm=TRUE))) %/% 10 + 2) * 10
+  limrate <- (max(sapply(1:ncol(set), function(i) suppressWarnings(max(exp(log(set[,i]) + 1.96*set_logsd[,i]*ci[i])*plot[i], na.rm=TRUE)))) %/% 10 + 2) * 10
+  if (is.nan(limrate)) limrate <- 100
   par(mar=c(5.1,4.1+grepl("\n",ylab),2.1,2.1))
   plot(0, type="n", bty="l", xaxt="n", ylim=c(0,limrate), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=ylab, xlab="Εβδομάδα")
   axis(1, at=1:(maxwk-19), labels=NA)
