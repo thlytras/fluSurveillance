@@ -1,3 +1,4 @@
+load("latest_analysis.RData")
 
 # Function to print warnings within a function (even before the top-level function returns)
 # This is used in run_labDeaths.R
