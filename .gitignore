@@ -6,3 +6,5 @@ data/GRIPI_BOREIA.xls
 data/GRIPI_EKPA.xls
 data/GRIPI_NOTIA.xls
 data/momoOutput.dta
+.Rproj.user
+flu/latest_analysis.RData
