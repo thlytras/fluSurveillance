@@ -425,6 +425,14 @@ rownames(plirotita_nuts) <- c("Ιδιώτες", "ΚΥ", "ΙΚΑ", "Σύνολο"
 colnames(plirotita_nuts) <- c("Βόρεια Ελλάδα", "Κεντρική Ελλάδα", "Αττική", "Νησιά Αιγαίου & Κρήτη", "Σύνολο")
 
 
+showgri<-function(yweek) {
+  result <- t(subset(resAll, yearweek==yweek)[,c("gritot","totvis")])
+  rownames(result) <- c("Σύνολο γριπωδών συνδρομών","Σύνολο επισκέψεων")
+  if (ncol(result)>1) colnames(result) <- "#"
+  result
+  }
+
+
 cat("\nΑποθήκευση συνόλου ανάλυσης...\n")
 
 write.csv2(plirotita_nuts,paste(path_output,"plirotita_nuts_",tgtweek,".csv",sep=""))
@@ -439,12 +447,6 @@ print(plirotita_nuts)
 print(plirotita_eidikotita)
 cat("ΙΚΑ Αμαρουσίου: "); cat(msg_marousi[1]); cat(msg_marousi[2]); cat("\n")
 
-showgri<-function(yweek) {
-  result <- t(subset(resAll, yearweek==yweek)[,c("gritot","totvis")])
-  rownames(result) <- c("Σύνολο γριπωδών συνδρομών","Σύνολο επισκέψεων")
-  if (ncol(result)>1) colnames(result) <- "#"
-  result
-  }
 
 print(showgri(tgtweek))
 cat(paste("Rate για την εβδομάδα ",(tgtweek%%100),"/",((tgtweek%/%100))," :   ",prettyNum(round(subset(resAll, yearweek==tgtweek)$gri,2), decimal.mark=",")," γριπώδεις συνδρομές ανά 1000 επισκέψεις\n",sep=""))

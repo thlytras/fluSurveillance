@@ -8,6 +8,7 @@ library(utils); library(stats);
 library(graphics); library(grDevices); 
 
 source('include.R');
+load('output/latest_analysis.RData');
 showMeWarnings(source('labDeaths.R')); 
 
 cat('\n\nPress ENTER to close window...\n\n'); readline();

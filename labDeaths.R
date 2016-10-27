@@ -456,7 +456,7 @@ repeat {
 if (makeReport) {
   cat("\nΕτοιμάζω την έκθεση...\n\n")
   library(odfWeave)
-  if (!exists("sentinel_graph")) {
+  if (!exists("sentinel_graph") || !exists("resAll")) {
     tgtweek.bak <- tgtweek
     load(paste(path_output, "latest_analysis.RData", sep=""))
     tgtweek <- tgtweek.bak; rm(tgtweek.bak)
