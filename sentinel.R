@@ -123,12 +123,12 @@ repeat {
 
 repeat {
   if(interactive()) {
-    input<-readline(paste("\nΘέλετε διαστήματα εμπιστοσύνης στις καμπύλες?\n (1=Όχι, 2=Ναι) [1] ",sep=""))
+    input<-readline(paste("\nΘέλετε διαστήματα εμπιστοσύνης στις καμπύλες?\n (1=Όχι, 2=Ναι) [2] ",sep=""))
   } else {
     input <- commandArgs(TRUE)[3]
     if (is.na(input) || input=="-") input <- ""
   }
-  if(input=="") { ciInPlot <- FALSE; break }
+  if(input=="") { ciInPlot <- TRUE; break }
   else {
     suppressWarnings(input<-as.integer(input))
     if (is.na(input)) input <- 0
