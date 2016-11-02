@@ -284,6 +284,10 @@ plirotites_nuts <- with(sentinelBig, table(
         systhma = factor(olemon[monada], levels=c("IDIO", "KEYG", "PEDY")),
         nuts = factor(nuts, levels=1:4), 
         yearweek))
+# Πολλαπλασιάζω τους παρατηρητές των ΚΥ επί 2 (να μη κακοκαρδίσουμε την Κάσσυ)
+plirotites_eidikotita[2,,] <- plirotites_eidikotita[2,,]*2
+plirotites_nuts[2,,] <- plirotites_nuts[2,,]*2
+# Τσεκάρω το Μαρούσι...
 if(tgtweek>=201440) {
   msg_marousi <- c(
       if (sum(subset(sentinelBig, yearweek==tgtweek & !is.na(yearweek))$codeiat %in% ika_marousi_pa)>0) "Έχει δηλώσει παθολόγος, " else

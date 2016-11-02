@@ -1,12 +1,9 @@
 source("include.R")
-#source("../web.R")
 
 sentinelYears <- rev((resAll$yearweek[(resAll$yearweek %% 100)==40]-40)/100)
 
 library(RColorBrewer)
 library(shiny)
-#library(rCharts)
-#options(RCHART_WIDTH=800)
 
 ui <- shinyUI(fluidPage(
   
@@ -23,7 +20,6 @@ ui <- shinyUI(fluidPage(
           selectInput("selSentYr", "Διαθέσιμα έτη", sentinelYears, selectize=TRUE,
                       selected=sentinelYears[1], multiple=TRUE),
           checkboxInput("sentCI", "Διάστημα εμπιστοσύνης"),
-          #checkboxInput("webgraph", "Διαδραστικό διάγραμμα (HTML5)"),
           img(src='keelpno.png', width=199, height=157, 
               style="display: block; margin-left: auto; margin-right: auto;")
         ), mainPanel(
@@ -79,11 +75,7 @@ ui <- shinyUI(fluidPage(
 server <- shinyServer(function(input, output) {
 
   output$sentinelPlotPanel <- renderUI({
-    #if (input$webgraph) {
-    #  showOutput("webSentinelPlot", "highcharts")
-    #} else {
       plotOutput("sentinelPlot")
-    #}
   })
   
   output$sentinelPlot <- renderPlot({
@@ -102,28 +94,6 @@ server <- shinyServer(function(input, output) {
     }
   })
 
-  output$webSentinelPlot <- renderChart2({
-    if (is.null(input$selSentYr)) {
-      selSentYr <- sentinelYears[1]
-    } else {
-      selSentYr <- as.integer(input$selSentYr)
-    }
-    colPal <- c(brewer.pal(9, "Set1")[-6], rainbow(8))
-    if (sum(selSentYr>=2014)>0 & sum(selSentYr>=2014)<length(selSentYr)) {
-      h <- web_graph(selSentYr, yaxis2=selSentYr[selSentYr<2014], mult=1/5, ci=input$sentCI, lwd=2,
-                     col=apply(col2rgb(colPal)/255, 2, function(x)rgb(x[1],x[2],x[3])), 
-                     ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Νέο σύστημα επιτήρησης, από 2014-2015",
-                     ylab2="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Παλιό σύστημα επιτήρησης, έως 2013-2014")
-      h$addParams(dom="webSentinelPlot")
-      return(h)
-    } else {
-      h <- web_graph(selSentYr, lwd=2, ci=input$sentCI, 
-                     col=apply(col2rgb(colPal)/255, 2, function(x)rgb(x[1],x[2],x[3])))
-      h$addParams(dom="webSentinelPlot")
-      return(h)
-    }
-  })
-  
   output$diaxPlot <- renderPlot({
     dxy <- diaxyear
     if (!is.null(input$diaxDateRange)) {
