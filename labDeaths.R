@@ -7,6 +7,26 @@ library(foreign)
 path_input = "./data/"
 path_output = "./output/"
 
+# Αντιστοίχηση στηλών στο ICU_Full
+mcols_meth <- c(
+    "flutype" = 8, 
+    "ICUadmDate" = 24,
+    "hospAdmDate" = 14, 
+    "outcome" = 30, 
+    "deathdate" = 31, 
+    "sex" = 4, 
+    "age" = 5
+)
+mcols_outOfMeth <- c(
+    "flutype" = 8, 
+    "hospAdmDate" = 14, 
+    "outcome" = 28, 
+    "deathdate" = 29, 
+    "sex" = 4, 
+    "age" = 5
+)
+
+
 # Συνάρτηση υπολογισμού της εβδομάδας κατά ISO
 isoweek <- function(x, type="week") {
   alts=c("week","year","both_text","both_num")
@@ -117,15 +137,13 @@ if (xlPack=="XLConnect") {
     methExcel <- loadWorkbook(paste(path_input, "ICU_Full.xls", sep=""))
     meth <- readWorksheet(methExcel, sheet=2)
     outOfMeth <- readWorksheet(methExcel, sheet=3)
-    names(meth)[c(8, 23, 14, 29, 30, 4, 5)] <- 
-            c("flutype", "ICUadmDate", "hospAdmDate", "outcome", "deathdate", "sex", "age")
+    names(meth)[mcols_meth] <- names(mcols_meth)
     meth$ICUadmDateC <- as.Date(meth$ICUadmDate)+1
     meth$outMethDateC <- as.Date(meth$Έξοδος.ΜΕΘ)+1
 } else {
     meth <- read.xls(paste(path_input, "ICU_Full.xls", sep=""), sheet=2)
     outOfMeth <- read.xls(paste(path_input, "ICU_Full.xls", sep=""), sheet=3)
-    names(meth)[c(8, 23, 14, 29, 30, 4, 5)] <- 
-            c("flutype", "ICUadmDate", "hospAdmDate", "outcome", "deathdate", "sex", "age")
+    names(meth)[mcols_meth] <- names(mcols_meth)
     meth$ICUadmDateC <- as.Date(as.character(meth$ICUadmDate), format="%d/%m/%y")
     meth$outMethDateC <- as.Date(as.character(meth$Έξοδος.ΜΕΘ), format="%d/%m/%y")
 }
@@ -158,7 +176,7 @@ if (sum(is.na(meth$flutypef))>0) {
 }
 meth$flutypef[is.na(meth$flutypef)] <- "χωρίς τύπο"
 
-names(outOfMeth)[c(8, 14, 27, 28, 4, 5)] <- c("flutype", "hospAdmDate", "outcome", "deathdate", "sex", "age")
+names(outOfMeth)[mcols_outOfMeth] <- names(mcols_outOfMeth)
 outOfMeth$flutypef <- factor(outOfMeth$flutype, levels=c("B", "A(H3N2)", "A(H1N1)pdm09", "A", "χωρίς τύπο"))
 if (sum(is.na(outOfMeth$flutypef))>0) {
     warning(paste("Στους ακόλουθους ασθενείς εκτός ΜΕΘ δεν έχει γραφτεί σωστά ο ιός γρίπης:\n",
