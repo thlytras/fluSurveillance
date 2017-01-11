@@ -426,9 +426,11 @@ fitGastroModel <- function(resG) {
   resG$N <- with(resG, 1 / ((gas/1000) * log.gas.sd^2))
   resG$week <- resG$yearweek %% 100
   resG$t <- 1:nrow(resG)
+  resG$knots <- 0; resG$knots[resG$week==1] <- 1
+  resG$knots[nrow(resG)-(4:0)] <- 0
 
   resG$Y <- with(resG, (gas/1000)*N)
-  modelG <- glm(Y ~ ns(t, knots=t[week==1]) + pbs(week, df=4), offset=log(N), data=resG, family="quasipoisson")
+  modelG <- glm(Y ~ ns(t, knots=which(knots==1)) + pbs(week, df=4), offset=log(N), data=resG, family="quasipoisson")
 
   Z <- 2
   od <- max(1,sum(modelG$weights * modelG$residuals^2)/modelG$df.r)
