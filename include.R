@@ -64,15 +64,18 @@ recode <- function(target,from,to) {
 
 # ΣΥΝΑΡΤΗΣΕΙΣ ΕΠΕΞΕΡΓΑΣΙΑΣ ΔΕΔΟΜΕΝΩΝ & ΑΛΓΟΡΙΘΜΩΝ ΑΝΑΛΥΣΗΣ
 
-# Function to fit the main model (whole country weekly ILI rate)
+# Function to fit the main flu model (whole country weekly ILI rate)
 # Data.frame big should have the following columns: gritit, totvis, codeiat, nuts, astikot
-fitMainModel <- function(big, NUTSpop, verbose=FALSE, returnModels=FALSE) {
+fitFluModel <- function(big, NUTSpop, gri="gritot", vis="totvis", verbose=FALSE, returnModels=FALSE) {
+  # Set variables for analysis
+    big$gri <- big[,gri]
+    big$vis <- big[,vis]
   # Match stratum information
     big$stratum <- with(big, paste(nuts, astikot, sep=""))
     big$prop <- NUTSpop$prop[match(big$stratum, NUTSpop$stratum)]
   # Adjust records (if missing ILI cases replace with 0)
-    big$gritot[is.na(big$gritot)] <- 0   # If ILI cases missing, set to zero
-    big <- subset(big, !is.na(totvis) & totvis>0)   # Discard if total visits zero or missing
+    big$gri[is.na(big$gri)] <- 0   # If ILI cases missing, set to zero
+    big <- subset(big, !is.na(vis) & vis>0)   # Discard if total visits zero or missing
   # Fit the models
     suppressWarnings({   # Don't echo glmer warnings
       aggrm <- lapply(sort(unique(big$yearweek)), function(w) {
@@ -81,20 +84,20 @@ fitMainModel <- function(big, NUTSpop, verbose=FALSE, returnModels=FALSE) {
         if (verbose) cat(".")
         x$wgt <- x$prop2/sum(x$prop2)*nrow(x)
         err <- try({
-          m <- glmer(gritot ~ 1 + (1|stratum) + (1|codeiat), 
-                offset=log(totvis), data=x, family="poisson", weights=wgt)
+          m <- glmer(gri ~ 1 + (1|stratum) + (1|codeiat), 
+                offset=log(vis), data=x, family="poisson", weights=wgt)
         }, silent=TRUE)
         if (class(err)=="try-error") return(NA)
         # If convergence warnings, try "bobyqa" optimizer
           if (length(summary(m)$optinfo$conv$lme4) > 0) {
-            m <- glmer(gritot ~ 1 + (1|stratum) + (1|codeiat), 
-                offset=log(totvis), data=x, family="poisson", weights=wgt,
+            m <- glmer(gri ~ 1 + (1|stratum) + (1|codeiat), 
+                offset=log(vis), data=x, family="poisson", weights=wgt,
                 control=glmerControl(optimizer="bobyqa"))
           }
         # If still convergence warnings, set calc.derivs=FALSE
           if (length(summary(m)$optinfo$conv$lme4) > 0) {
-            m <- glmer(gritot ~ 1 + (1|stratum) + (1|codeiat), 
-                offset=log(totvis), data=x, family="poisson", weights=wgt,
+            m <- glmer(gri ~ 1 + (1|stratum) + (1|codeiat), 
+                offset=log(vis), data=x, family="poisson", weights=wgt,
                 control=glmerControl(calc.derivs=FALSE))
           }
         return(m)
@@ -116,8 +119,8 @@ fitMainModel <- function(big, NUTSpop, verbose=FALSE, returnModels=FALSE) {
 
 
 # Descriptives by week, whole country
-aggrByWeek <- function(big) {
-    aggr1a <- aggregate(big[,c("totvis", "gritot")], by=list(yearweek=big$yearweek), sum, na.rm=TRUE)
+aggrByWeek <- function(big, gri="gritot", vis="totvis") {
+    aggr1a <- aggregate(big[,c(vis, gri)], by=list(yearweek=big$yearweek), sum, na.rm=TRUE)
     aggr1b <- as.data.frame.matrix(with(big, table(yearweek, factor(eid, levels=1:2))))
     aggr1c <- as.data.frame.matrix(with(big, table(yearweek, factor(nuts, levels=1:4))))
 
@@ -135,12 +138,12 @@ aggrByWeek <- function(big) {
 
 
 # Γράφημα για διαχρονική τάση του rate
-diax_graph <- function(years, col="darkred", ci=FALSE, alpha=0.25) {
-  ratechart <- resAll$gri; names(ratechart) <- resAll$yearweek
+diax_graph <- function(years, dataset="resAll", col="darkred", ci=FALSE, alpha=0.25) {
+  ratechart <- get(dataset)$gri; names(ratechart) <- get(dataset)$yearweek
   set <- ratechart[names(ratechart)>=years[1] & names(ratechart)<=years[2]]
   limrate <- (max(set,na.rm=TRUE)%/%20+1)*20
   if (ci) {
-    ratechart_logsd <- resAll$log.gri.sd; names(ratechart_logsd) <- resAll$yearweek
+    ratechart_logsd <- get(dataset)$log.gri.sd; names(ratechart_logsd) <- get(dataset)$yearweek
     set_logsd <- ratechart_logsd[names(ratechart_logsd)>=years[1] & names(ratechart_logsd)<=years[2]]
     limrate <- (max(exp(log(set) + 1.96*set_logsd),na.rm=TRUE)%/%20+1)*20
   }
@@ -196,7 +199,7 @@ drawBand <- function(x, y.lo, y.hi, col) {
 
 
 # Γράφημα που δείχνει μία περίοδο γρίπης (εβδ. 40 έως εβδ. 20)
-sentinel_graph <- function(years, col=rainbow(length(years)), 
+sentinel_graph <- function(years, dataset="resAll", col=rainbow(length(years)), 
 	yaxis2=NA, mult=1, ygrid=0, lty=rep(1,length(years)), lwd=rep(1,length(years)),
 	ylab="Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις",
 	ylab2=NA, ylab2rot=TRUE, ci=FALSE, alpha=0.1)
@@ -215,8 +218,8 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
       }
     }
   }
-  ratechart <- resAll$gri; names(ratechart) <- resAll$yearweek
-  ratechart_logsd <- resAll$log.gri.sd; names(ratechart_logsd) <- resAll$yearweek
+  ratechart <- get(dataset)$gri; names(ratechart) <- get(dataset)$yearweek
+  ratechart_logsd <- get(dataset)$log.gri.sd; names(ratechart_logsd) <- get(dataset)$yearweek
   if(length(ci)==1) ci <- rep(ci, length(years))
   if(length(alpha)==1) alpha <- rep(alpha, length(years))
   maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(years,"-12-31",sep="")))==53))>0, 53, 52)
@@ -282,7 +285,7 @@ sentinel_graph <- function(years, col=rainbow(length(years)),
 
 
 
-fitGroupModel <- function(grp, big, NUTSpop, verbose=FALSE, returnModels=FALSE) {
+fitFluGroupModel <- function(grp, big, NUTSpop, verbose=FALSE, returnModels=FALSE) {
   # grp must be one of "asty", "nuts"
     if (!(grp %in% c("asty", "nuts"))) stop("Argument 'grp' must be one of \"asty\", \"nuts\".")
   # Match stratum information
@@ -417,3 +420,32 @@ sentinelGraphByGroup <- function(resGrp, year, ylab="Κρούσματα γριπ
 
 
 
+fitGastroModel <- function(resG) {
+  names(resG)[names(resG)=="gri"] <- "gas"
+  names(resG)[names(resG)=="log.gri.sd"] <- "log.gas.sd"
+  resG$N <- with(resG, 1 / ((gas/1000) * log.gas.sd^2))
+  resG$week <- resG$yearweek %% 100
+  resG$t <- 1:nrow(resG)
+
+  resG$Y <- with(resG, (gas/1000)*N)
+  modelG <- glm(Y ~ ns(t, knots=t[week==1]) + pbs(week, df=4), offset=log(N), data=resG, family="quasipoisson")
+
+  Z <- 2
+  od <- max(1,sum(modelG$weights * modelG$residuals^2)/modelG$df.r)
+
+  resG$Pnb <- predict(modelG, type="response")
+  resG$stdp <- predict(modelG, se.fit=TRUE)$se.fit
+  resG$UPInb <- with(resG, (Pnb^(2/3)+ Z*((4/9)*(Pnb^(1/3))*(od+(stdp^2)*(Pnb)))^(1/2))^(3/2) )
+  resG$zscore <- with(resG, (Y^(2/3) - Pnb^(2/3)) / ((4/9)*(Pnb^(1/3))*(od+Pnb*(stdp^2)))^(1/2))
+
+  resG$fitted <- with(resG, Pnb/resG$N*1000)
+  resG$UPI <- with(resG, UPInb/resG$N*1000)
+
+  resG$ywtp <- NA
+  resG$ywtp[with(resG, (week %% 100) %in% c(1,26))] <- with(resG, yearweek[(week %% 100) %in% c(1,26)])
+  
+  attr(resG, "modelG") <- modelG
+  attr(resG, "od") <- od
+  
+  resG
+}

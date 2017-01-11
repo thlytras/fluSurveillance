@@ -8,6 +8,8 @@
 require(foreign) # Απαιτείται το πακέτο foreign, για την ανάγνωση αρχείων SPSS και EpiData
 require(plotrix) # Χρειάζεται για την εκτύπωση 95% CI στο διάγραμμα
 require(lme4)
+require(splines)
+require(pbs)
 
 source("include.R")
 
@@ -221,6 +223,8 @@ NUTSpop$prop <- mapply(function(n,a){   # prop = Stratum population / Total Gree
     atxt <- c("ast_p_nu", "agr_p_nu")[a]
     subset(nomos_populations, nuts==n)[1,atxt]
 },NUTSpop$nuts, NUTSpop$astikot)
+# Load population proportions by age group
+load(paste(path_input, "NUTSpopAge.RData", sep=""))
 
 
 if (opts$calculateOld) {
@@ -237,7 +241,7 @@ tryCatch({
 }, error=function(err){
   stop(paste(readerrmsg[1],"sent14.rec",readerrmsg[2],path_input))
 })
-required_fields <- c("nom", "eid", "monada", "etos", "ebdo", "totvis", "gastot", "gritot", "totdays", "hmekat", "arxebd", "telebd")
+required_fields <- c("nom", "eid", "monada", "etos", "ebdo", "totvis", "gastot", "gritot", "totdays", "hmekat", "arxebd", "telebd", "gri1", "gri2", "gri3", "gri4", "gas1", "gas2", "gas3", "gas4", "vis1", "vis2", "vis3", "vis4")
 if (FALSE %in% (required_fields %in% names(sentinelBig))) stop("Το αρχείο sent14.rec δεν περιέχει τα σωστά πεδία! Αδυνατώ να συνεχίσω...")   # Ανίχνευση λαθών
 
 dates_to_check <- with(sentinelBig, which((hmekat < arxebd+6) | (as.POSIXlt(arxebd)$wday!=1) | ((telebd-arxebd)>6) | ((telebd-arxebd)<0) | (is.na(arxebd) | is.na(telebd))))
@@ -308,8 +312,17 @@ if (opts$weeksRecalc>0 & file.exists(paste(path_output, "res.RData", sep=""))) {
   resOld <- rbind(resOld, subset(res, yearweek<=limweek))
   resNutsOld <- rbind(resNutsOld, subset(resNuts, yearweek<=limweek))
   resAstyOld <- rbind(resAstyOld, subset(resAsty, yearweek<=limweek))
+  resGastroOld <- rbind(resGastroOld, subset(resGastro, yearweek<=limweek))
+  resGri1Old <- subset(resGri1, yearweek<=limweek)
+  resGri2Old <- subset(resGri2, yearweek<=limweek)
+  resGri3Old <- subset(resGri3, yearweek<=limweek)
+  resGri4Old <- subset(resGri4, yearweek<=limweek)
+  resGas1Old <- subset(resGas1, yearweek<=limweek)
+  resGas2Old <- subset(resGas2, yearweek<=limweek)
+  resGas3Old <- subset(resGas3, yearweek<=limweek)
+  resGas4Old <- subset(resGas4, yearweek<=limweek)
 }
-resMainModel <- fitMainModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, verbose=TRUE)
+resMainModel <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, verbose=TRUE)
 descrByWeek <- aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek))
 res <- merge(resMainModel, descrByWeek)
 
@@ -330,21 +343,69 @@ resAll <- rbind(resOld, res) # Συνένωση με τα αποτελέσματ
 res <- subset(resAll, yearweek>201439)
 
 
+cat("\nΕξαγωγή rate γαστρεντερίτιδων (βασικό μοντέλο)...\n")
+
+resGastroModel <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, "gastot", "totvis", verbose=TRUE)
+descrGastroByWeek <- aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), "gastot", "totvis")
+resGastro <- merge(resGastroModel, descrGastroByWeek)
+resGastroAll <- rbind(resGastroOld, resGastro) # Συνένωση με τα αποτελέσματα του παλιού sentinel
+resGastro <- subset(resGastroAll, yearweek>201439)
+
+
 cat("\nΕξαγωγή ILI rate (κατά NUTS 1)...\n")
-resNuts <- fitGroupModel("nuts", subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, verbose=TRUE)
-cat("\nΕξαγωγή ILI rate (κατά αστικότητα)...\n")
-resAsty <- fitGroupModel("asty", subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, verbose=TRUE)
-
-
+resNuts <- fitFluGroupModel("nuts", subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, verbose=TRUE)
 resNutsAll <- rbind(resNutsOld, resNuts)
 resNuts <- subset(resNutsAll, yearweek>201439)
+
+cat("\nΕξαγωγή ILI rate (κατά αστικότητα)...\n")
+resAsty <- fitFluGroupModel("asty", subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, verbose=TRUE)
 resAstyAll <- rbind(resAstyOld, resAsty)
 resAsty <- subset(resAstyAll, yearweek>201439)
+
+cat("\nΕξαγωγή ILI rate (κατά ηλικιακές ομάδες)...\n")
+resGri1 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[1]], "gri1", "vis1", verbose=TRUE)
+cat("\n"); resGri2 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[2]], "gri2", "vis2", verbose=TRUE)
+cat("\n"); resGri3 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[3]], "gri3", "vis3", verbose=TRUE)
+cat("\n"); resGri4 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[4]], "gri4", "vis4", verbose=TRUE)
+resGri1All <- rbind(resGri1Old, resGri1)
+resGri1 <- subset(resGri1All, yearweek>201439)
+resGri2All <- rbind(resGri2Old, resGri2)
+resGri2 <- subset(resGri2All, yearweek>201439)
+resGri3All <- rbind(resGri3Old, resGri3)
+resGri3 <- subset(resGri3All, yearweek>201439)
+resGri4All <- rbind(resGri4Old, resGri4)
+resGri4 <- subset(resGri4All, yearweek>201439)
+
+
+cat("\nΕξαγωγή rate γαστρεντεριτίδων (κατά ηλικιακές ομάδες)...\n")
+resGas1 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[1]], "gas1", "vis1", verbose=TRUE)
+cat("\n"); resGas2 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[2]], "gas2", "vis2", verbose=TRUE)
+cat("\n"); resGas3 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[3]], "gas3", "vis3", verbose=TRUE)
+cat("\n"); resGas4 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[4]], "gas4", "vis4", verbose=TRUE)
+resGas1All <- rbind(resGas1Old, resGas1)
+resGas1 <- subset(resGas1All, yearweek>201439)
+resGas2All <- rbind(resGas2Old, resGas2)
+resGas2 <- subset(resGas2All, yearweek>201439)
+resGas3All <- rbind(resGas3Old, resGas3)
+resGas3 <- subset(resGas3All, yearweek>201439)
+resGas4All <- rbind(resGas4Old, resGas4)
+resGas4 <- subset(resGas4All, yearweek>201439)
+
+cat("\nΠροσαρμογή μοντέλου γαστρεντεριτίδων...\n")
+resGastroAll <- fitGastroModel(resGastroAll)
+resGas1All <- fitGastroModel(resGas1All)
+resGas2All <- fitGastroModel(resGas2All)
+resGas3All <- fitGastroModel(resGas3All)
+resGas4All <- fitGastroModel(resGas4All)
+
 
 cat("\nΑποθήκευση ανάλυσης...\n")
 
 write.csv2(resAll, file = paste(path_output,"ratechart.csv",sep=""))
-save(res, resNuts, resAsty, file = paste(path_output,"res.RData",sep=""))
+save(res, resNuts, resAsty, resGastro,
+        resGri1, resGri2, resGri3, resGri4, 
+        resGas1, resGas2, resGas3, resGas4, 
+        file = paste(path_output,"res.RData",sep=""))
 
 
 # ******** ΕΞΑΓΩΓΗ ΑΠΟΤΕΛΕΣΜΑΤΩΝ ********
@@ -361,7 +422,11 @@ makeGraphCalls <- function(graphtype) {
     paste(path_output, "sentinel_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
     paste(path_output, "sentinel_allyears.", graphtype, sep=""),
     paste(path_output, "sentinel_bySystem_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
-    paste(path_output, "sentinel_byNUTS_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep="")
+    paste(path_output, "sentinel_byNUTS_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_AgeGr1", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_AgeGr2", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_AgeGr3", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_AgeGr4", tgtyear, "-", (tgtyear+1), ".", graphtype, sep="")
   )
   a3 <- c(rep(10, 3), rep(2800, 3)); names(a3) <- names(a1)
   a4 <- c(rep(6, 3), rep(1680, 3)); names(a4) <- names(a1)
@@ -401,6 +466,18 @@ if (is.na(graphtype)) {
 
   eval(parse(text=graphCalls[4]))
   sentinelGraphByGroup(resNutsAll, tgtyear, ci=ciInPlot)
+  dev.off()
+  
+  cairo_pdf(paste(path_output, "sentinel_FluAgeGroups_", tgtyear, "-", (tgtyear+1), ".pdf", sep=""), width=8.3, height=11.7)
+  par(mfrow=c(4,1), oma=c(3,3,1,2))
+  sentinel_graph(ytp, "resGri1", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.1,0.15))
+  mtext("Ηλικίες 0-4 ετών", side=3, cex=1.1)
+  sentinel_graph(ytp, "resGri2", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.1,0.15))
+  mtext("Ηλικίες 5-14 ετών", side=3, cex=1.1)
+  sentinel_graph(ytp, "resGri3", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.1,0.15))
+  mtext("Ηλικίες 15-64 ετών", side=3, cex=1.1)
+  sentinel_graph(ytp, "resGri4", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.1,0.15))
+  mtext("Ηλικίες >=65 ετών", side=3, cex=1.1)
   dev.off()
 
 }

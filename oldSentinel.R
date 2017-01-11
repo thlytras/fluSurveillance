@@ -190,17 +190,15 @@ plirotites_nuts_old <- with(big, table(
 
 cat("\nΕξαγωγή ILI rate (βασικό μοντέλο)...\n")
 
-
-
-resMainModelOld <- fitMainModel(big, NUTSpop, verbose=TRUE)
+resMainModelOld <- fitFluModel(big, NUTSpop, verbose=TRUE)
 descrByWeekOld <- aggrByWeek(big)
 
 resOld <- merge(resMainModelOld, descrByWeekOld)
 
 cat("\nΕξαγωγή ILI rate (κατά NUTS 1)...\n")
-resNutsOld <- fitGroupModel("nuts", big, NUTSpop, verbose=TRUE)
+resNutsOld <- fitFluGroupModel("nuts", big, NUTSpop, verbose=TRUE)
 cat("\nΕξαγωγή ILI rate (κατά αστικότητα)...\n")
-resAstyOld <- fitGroupModel("asty", big, NUTSpop, verbose=TRUE)
+resAstyOld <- fitFluGroupModel("asty", big, NUTSpop, verbose=TRUE)
 
 # Υπολογισμός "εκτιμώμενου" συνολικού πληθυσμού
 # (Πρώην excelάκι Κατερέλου-Καλαμάρα, βάσει του οποίου δηλώνουμε στο TESSy)
@@ -210,8 +208,20 @@ resOld$popest <- round(
         (resOld$pd/abcland[2,2]*sum(abcland[3:4,2])))
 
 
+
+cat("\nΕξαγωγή rate γαστρεντεριτίδων (βασικό μοντέλο)...\n")
+
+resGastroModelOld <- fitFluModel(big, NUTSpop, "gastot", "totvis", verbose=TRUE)
+descrGastroByWeekOld <- aggrByWeek(big, "gastot", "totvis")
+
+resGastroOld <- merge(resGastroModelOld, descrGastroByWeekOld)
+
+
+
+
+
 # Σώζουμε τα αποτελέσματα
-save(resOld, resNutsOld, resAstyOld,
+save(resOld, resNutsOld, resAstyOld, resGastroOld, 
         plirotites_eidikotita_old, plirotites_nuts_old, 
         file=paste(path_input, "oldSentinel.RData", sep=""))
 
