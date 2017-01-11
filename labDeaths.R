@@ -15,7 +15,8 @@ mcols_meth <- c(
     "outcome" = 30, 
     "deathdate" = 31, 
     "sex" = 4, 
-    "age" = 5
+    "age" = 5,
+    "vacc" = 17
 )
 mcols_outOfMeth <- c(
     "flutype" = 8, 
@@ -23,7 +24,8 @@ mcols_outOfMeth <- c(
     "outcome" = 28, 
     "deathdate" = 29, 
     "sex" = 4, 
-    "age" = 5
+    "age" = 5,
+    "vacc" = 16
 )
 
 
@@ -194,8 +196,8 @@ outOfMeth$yearweek <- isoweek(outOfMeth$hospAdmDateC, type="both_num")
 meth$meth <- rep(TRUE, nrow(meth))  # Safeguard against nrow(meth)==0
 outOfMeth$meth <- rep(FALSE, nrow(outOfMeth))    # Safeguard against nrow(outOfMeth)==0
 totDeaths <- rbind(
-        subset(meth, outcome=="Θάνατος")[,c("flutypef", "deathdate", "meth", "sex", "age", "HRCG")], 
-	subset(outOfMeth, outcome=="Θάνατος")[,c("flutypef", "deathdate", "meth", "sex", "age", "HRCG")])
+        subset(meth, outcome=="Θάνατος")[,c("flutypef", "deathdate", "meth", "sex", "age", "HRCG", "vacc")], 
+	subset(outOfMeth, outcome=="Θάνατος")[,c("flutypef", "deathdate", "meth", "sex", "age", "HRCG", "vacc")])
 totDeaths$deathdateC <- if (xlPack=="XLConnect") {
         as.Date(totDeaths$deathdate)+1
     } else {
