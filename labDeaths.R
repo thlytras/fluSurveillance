@@ -205,6 +205,11 @@ totDeaths$deathdateC <- if (xlPack=="XLConnect") {
     }
 totDeaths$yearweek <- isoweek(totDeaths$deathdateC, type="both_num")
 totDeaths$yearweekf <- factor(totDeaths$yearweek, levels=weekSel)
+suppressWarnings({
+  meth$vacc <- as.integer(meth$vacc)
+  outOfMeth$vacc <- as.integer(outOfMeth$vacc)
+  totDeaths$vacc <- as.integer(totDeaths$vacc)
+})
 
 
 
@@ -446,8 +451,8 @@ rb$summSwabTot["Total",] <- colSums(rb$summSwabTot[2:4,])
 
 rb$showPct <- function(x, y) { paste(x, " (", round(x*100/y, 1), "%)", sep="") }
 
-rb$summF <- function(x,y="Total") rb$showPct(rowSums(rb$summSwab)[x], rowSums(rb$summSwab)[y])
-rb$summFtot <- function(x,y="Total") rb$showPct(rowSums(rb$summSwabTot)[x], rowSums(rb$summSwabTot)[y])
+rb$summF <- function(x,y="Total") rb$showPct(sum(rowSums(rb$summSwab)[x]), sum(rowSums(rb$summSwab)[y]))
+rb$summFtot <- function(x,y="Total") rb$showPct(sum(rowSums(rb$summSwabTot)[x]), sum(rowSums(rb$summSwabTot)[y]))
 
 rb$meth <- subset(meth, yearweek<=tgtweek)
 rb$outOfMeth <- subset(outOfMeth, yearweek<=tgtweek)
