@@ -10,6 +10,7 @@ require(plotrix) # Χρειάζεται για την εκτύπωση 95% CI σ
 require(lme4)
 require(splines)
 require(pbs)
+require(odfWeave)
 
 source("include.R")
 
@@ -344,7 +345,6 @@ res <- subset(resAll, yearweek>201439)
 
 
 cat("\nΕξαγωγή rate γαστρεντερίτιδων (βασικό μοντέλο)...\n")
-
 resGastroModel <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, "gastot", "totvis", verbose=TRUE)
 descrGastroByWeek <- aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), "gastot", "totvis")
 resGastro <- merge(resGastroModel, descrGastroByWeek)
@@ -357,51 +357,61 @@ resNuts <- fitFluGroupModel("nuts", subset(sentinelBig, yearweek>limweek & yearw
 resNutsAll <- rbind(resNutsOld, resNuts)
 resNuts <- subset(resNutsAll, yearweek>201439)
 
+
 cat("\nΕξαγωγή ILI rate (κατά αστικότητα)...\n")
 resAsty <- fitFluGroupModel("asty", subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpop, verbose=TRUE)
 resAstyAll <- rbind(resAstyOld, resAsty)
 resAsty <- subset(resAstyAll, yearweek>201439)
 
+
 cat("\nΕξαγωγή ILI rate (κατά ηλικιακές ομάδες)...\n")
 resGri1 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[1]], "gri1", "vis1", verbose=TRUE)
-cat("\n"); resGri2 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[2]], "gri2", "vis2", verbose=TRUE)
-cat("\n"); resGri3 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[3]], "gri3", "vis3", verbose=TRUE)
-cat("\n"); resGri4 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[4]], "gri4", "vis4", verbose=TRUE)
-resGri1All <- rbind(resGri1Old, resGri1)
-resGri1 <- subset(resGri1All, yearweek>201439)
-resGri2All <- rbind(resGri2Old, resGri2)
-resGri2 <- subset(resGri2All, yearweek>201439)
-resGri3All <- rbind(resGri3Old, resGri3)
-resGri3 <- subset(resGri3All, yearweek>201439)
-resGri4All <- rbind(resGri4Old, resGri4)
-resGri4 <- subset(resGri4All, yearweek>201439)
+resGri1 <- merge(resGri1, aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), "gri1", "vis1"))
+if (exists("resGri1Old")) resGri1 <- rbind(resGri1Old, resGri1)
+cat("\n")
+resGri2 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[2]], "gri2", "vis2", verbose=TRUE)
+resGri2 <- merge(resGri2, aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), "gri2", "vis2"))
+if (exists("resGri2Old")) resGri2 <- rbind(resGri2Old, resGri2)
+cat("\n")
+resGri3 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[3]], "gri3", "vis3", verbose=TRUE)
+resGri3 <- merge(resGri3, aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), "gri3", "vis3"))
+if (exists("resGri3Old")) resGri3 <- rbind(resGri3Old, resGri3)
+cat("\n")
+resGri4 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[4]], "gri4", "vis4", verbose=TRUE)
+resGri4 <- merge(resGri4, aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), "gri4", "vis4"))
+if (exists("resGri4Old")) resGri4 <- rbind(resGri4Old, resGri4)
 
 
 cat("\nΕξαγωγή rate γαστρεντεριτίδων (κατά ηλικιακές ομάδες)...\n")
 resGas1 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[1]], "gas1", "vis1", verbose=TRUE)
-cat("\n"); resGas2 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[2]], "gas2", "vis2", verbose=TRUE)
-cat("\n"); resGas3 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[3]], "gas3", "vis3", verbose=TRUE)
-cat("\n"); resGas4 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[4]], "gas4", "vis4", verbose=TRUE)
-resGas1All <- rbind(resGas1Old, resGas1)
-resGas1 <- subset(resGas1All, yearweek>201439)
-resGas2All <- rbind(resGas2Old, resGas2)
-resGas2 <- subset(resGas2All, yearweek>201439)
-resGas3All <- rbind(resGas3Old, resGas3)
-resGas3 <- subset(resGas3All, yearweek>201439)
-resGas4All <- rbind(resGas4Old, resGas4)
-resGas4 <- subset(resGas4All, yearweek>201439)
+resGas1 <- merge(resGas1, aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), "gas1", "vis1"))
+if (exists("resGas1")) resGas1 <- rbind(resGas1Old, resGas1)
+cat("\n")
+resGas2 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[2]], "gas2", "vis2", verbose=TRUE)
+resGas2 <- merge(resGas2, aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), "gas2", "vis2"))
+if (exists("resGas2")) resGas2 <- rbind(resGas2Old, resGas2)
+cat("\n")
+resGas3 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[3]], "gas3", "vis3", verbose=TRUE)
+resGas3 <- merge(resGas3, aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), "gas3", "vis3"))
+if (exists("resGas3")) resGas3 <- rbind(resGas3Old, resGas3)
+cat("\n")
+resGas4 <- fitFluModel(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), NUTSpopAge[[4]], "gas4", "vis4", verbose=TRUE)
+resGas4 <- merge(resGas4, aggrByWeek(subset(sentinelBig, yearweek>limweek & yearweek<=tgtweek), "gas4", "vis4"))
+if (exists("resGas4")) resGas4 <- rbind(resGas4Old, resGas4)
+
 
 cat("\nΠροσαρμογή μοντέλου γαστρεντεριτίδων...\n")
 resGastroAll <- fitGastroModel(resGastroAll)
-resGas1All <- fitGastroModel(resGas1All)
-resGas2All <- fitGastroModel(resGas2All)
-resGas3All <- fitGastroModel(resGas3All)
-resGas4All <- fitGastroModel(resGas4All)
+resGas1All <- fitGastroModel(resGas1)
+resGas2All <- fitGastroModel(resGas2)
+resGas3All <- fitGastroModel(resGas3)
+resGas4All <- fitGastroModel(resGas4)
 
 
 cat("\nΑποθήκευση ανάλυσης...\n")
 
 write.csv2(resAll, file = paste(path_output,"ratechart.csv",sep=""))
+write.csv2(resGastroAll, file = paste(path_output,"ratechart_gastro.csv",sep=""))
 save(res, resNuts, resAsty, resGastro,
         resGri1, resGri2, resGri3, resGri4, 
         resGas1, resGas2, resGas3, resGas4, 
@@ -423,17 +433,27 @@ makeGraphCalls <- function(graphtype) {
     paste(path_output, "sentinel_allyears.", graphtype, sep=""),
     paste(path_output, "sentinel_bySystem_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
     paste(path_output, "sentinel_byNUTS_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
-    paste(path_output, "sentinel_AgeGr1", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
-    paste(path_output, "sentinel_AgeGr2", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
-    paste(path_output, "sentinel_AgeGr3", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
-    paste(path_output, "sentinel_AgeGr4", tgtyear, "-", (tgtyear+1), ".", graphtype, sep="")
+    paste(path_output, "sentinel_AgeGr1_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_AgeGr2_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_AgeGr3_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_AgeGr4_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_Gastro_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_Gas1_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_Gas2_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_Gas3_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_Gas4_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_GasAgeGrAll_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep=""),
+    paste(path_output, "sentinel_AgeGrAll_", tgtyear, "-", (tgtyear+1), ".", graphtype, sep="")
   )
   a3 <- c(rep(10, 3), rep(2800, 3)); names(a3) <- names(a1)
   a4 <- c(rep(6, 3), rep(1680, 3)); names(a4) <- names(a1)
   a5 <- c(rep("", 3), rep(", res=288", 3)); names(a5) <- names(a1)
   a6 <- c(rep("", 5), ", compression=lzw"); names(a6) <- names(a1)
-  sapply(1:4, function(i) sprintf("%s(\"%s\", width=%s, height=%s%s%s)", a1[graphtype], 
+  grcalls <- sapply(1:13, function(i) sprintf("%s(\"%s\", width=%s, height=%s%s%s)", a1[graphtype], 
         a2[i], a3[graphtype], a4[graphtype], a5[graphtype], a6[graphtype]) )
+  grcalls[14] <- sprintf("%s(\"%s\", width=%s, height=%s%s%s)", a1[graphtype], a2[14], a3[graphtype], a3[graphtype], a5[graphtype], a6[graphtype]) 
+  grcalls[15] <- sprintf("%s(\"%s\", width=%s, height=%s%s%s)", a1[graphtype], a2[15], a3[graphtype], a3[graphtype], a5[graphtype], a6[graphtype]) 
+  grcalls
 }
 
 if (is.na(graphtype)) {
@@ -467,17 +487,75 @@ if (is.na(graphtype)) {
   eval(parse(text=graphCalls[4]))
   sentinelGraphByGroup(resNutsAll, tgtyear, ci=ciInPlot)
   dev.off()
-  
-  cairo_pdf(paste(path_output, "sentinel_FluAgeGroups_", tgtyear, "-", (tgtyear+1), ".pdf", sep=""), width=8.3, height=11.7)
-  par(mfrow=c(4,1), oma=c(3,3,1,2))
-  sentinel_graph(ytp, "resGri1", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.1,0.15))
+
+  eval(parse(text=graphCalls[5]))
+  sentinel_graph(ytp, "resGri1", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.08,0.15), ylab=NA)
   mtext("Ηλικίες 0-4 ετών", side=3, cex=1.1)
-  sentinel_graph(ytp, "resGri2", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.1,0.15))
+  dev.off()
+
+  eval(parse(text=graphCalls[6]))
+  sentinel_graph(ytp, "resGri2", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.08,0.15), ylab=NA)
   mtext("Ηλικίες 5-14 ετών", side=3, cex=1.1)
-  sentinel_graph(ytp, "resGri3", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.1,0.15))
+  dev.off()
+
+  eval(parse(text=graphCalls[7]))
+  sentinel_graph(ytp, "resGri3", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.08,0.15), ylab=NA)
   mtext("Ηλικίες 15-64 ετών", side=3, cex=1.1)
-  sentinel_graph(ytp, "resGri4", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.1,0.15))
+  dev.off()
+
+  eval(parse(text=graphCalls[8]))
+  sentinel_graph(ytp, "resGri4", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.08,0.15), ylab=NA)
   mtext("Ηλικίες >=65 ετών", side=3, cex=1.1)
+  dev.off()
+
+  eval(parse(text=graphCalls[9]))
+  gastro_graph(resGastroAll)
+  dev.off()
+
+  eval(parse(text=graphCalls[10]))
+  gastro_graph(resGas1All)
+  mtext("Ηλικίες 0-4 ετών", side=3, cex=1.1, line=1)
+  dev.off()
+
+  eval(parse(text=graphCalls[11]))
+  gastro_graph(resGas2All)
+  mtext("Ηλικίες 5-14 ετών", side=3, cex=1.1, line=1)
+  dev.off()
+
+  eval(parse(text=graphCalls[12]))
+  gastro_graph(resGas3All)
+  mtext("Ηλικίες 15-64 ετών", side=3, cex=1.1, line=1)
+  dev.off()
+
+  eval(parse(text=graphCalls[13]))
+  gastro_graph(resGas4All)
+  mtext("Ηλικίες >=65 ετών", side=3, cex=1.1, line=1)
+  dev.off()
+
+  eval(parse(text=graphCalls[14]))
+  par(mfrow=c(4,1), oma=c(3,3,1,2))
+  gastro_graph(resGas1All, ylab=NA)
+  mtext("Ηλικίες 0-4 ετών", side=3, cex=1.1, line=1)
+  gastro_graph(resGas2All, ylab=NA)
+  mtext("Ηλικίες 5-14 ετών", side=3, cex=1.1, line=1)
+  gastro_graph(resGas3All, ylab=NA)
+  mtext("Ηλικίες 15-64 ετών", side=3, cex=1.1, line=1)
+  gastro_graph(resGas4All, ylab=NA)
+  mtext("Ηλικίες >=65 ετών", side=3, cex=1.1, line=1)
+  mtext("Κρούσματα γαστρεντερίτιδας ανά 1000 επισκέψεις", side=2, outer=TRUE, line=-1, cex=1.1)
+  dev.off()
+
+  eval(parse(text=graphCalls[15]))
+  par(mfrow=c(4,1), oma=c(3,3,1,2))
+  sentinel_graph(ytp, "resGri1", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.08,0.15), ylab=NA)
+  mtext("Ηλικίες 0-4 ετών", side=3, cex=1.1)
+  sentinel_graph(ytp, "resGri2", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.08,0.15), ylab=NA)
+  mtext("Ηλικίες 5-14 ετών", side=3, cex=1.1)
+  sentinel_graph(ytp, "resGri3", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.08,0.15), ylab=NA)
+  mtext("Ηλικίες 15-64 ετών", side=3, cex=1.1)
+  sentinel_graph(ytp, "resGri4", col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.08,0.15), ylab=NA)
+  mtext("Ηλικίες >=65 ετών", side=3, cex=1.1)
+  mtext("Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις", side=2, outer=TRUE, line=-1.3, cex=1.1)
   dev.off()
 
 }
@@ -506,12 +584,54 @@ rownames(plirotita_nuts) <- c("Ιδιώτες", "ΚΥ", "ΙΚΑ", "Σύνολο"
 colnames(plirotita_nuts) <- c("Βόρεια Ελλάδα", "Κεντρική Ελλάδα", "Αττική", "Νησιά Αιγαίου & Κρήτη", "Σύνολο")
 
 
-showgri<-function(yweek) {
-  result <- t(subset(resAll, yearweek==yweek)[,c("gritot","totvis")])
-  rownames(result) <- c("Σύνολο γριπωδών συνδρομών","Σύνολο επισκέψεων")
-  if (ncol(result)>1) colnames(result) <- "#"
-  result
-  }
+# Πίνακες γριπωδών συνδρομών & γαστρεντεριτίδων
+tbTotGri <- sapply(list(resGri1, resGri2, resGri3, resGri4, res), function(x) 
+    prettyNum(round(unlist(subset(x, yearweek==tgtweek)[,c(5:4,2)]), 2), big.mark=".", decimal.mark=","))
+colnames(tbTotGri) <- c("0-4 ετών", "5-14 ετών", "15-65 ετών", "&gt;65 ετών", "Σύνολο")
+rownames(tbTotGri) <- c("Αρ.γριπωδών συνδρομών", "Αρ.επισκέψεων", "Γριπώδεις συνδρομές / 1000 επισκέψεις")
+
+tbTotGas <- sapply(list(resGas1, resGas2, resGas3, resGas4, resGastro), function(x) 
+    prettyNum(round(unlist(subset(x, yearweek==tgtweek)[,c(5:4,2)]), 2), big.mark=".", decimal.mark=","))
+colnames(tbTotGas) <- c("0-4 ετών", "5-14 ετών", "15-65 ετών", "&gt;65 ετών", "Σύνολο")
+rownames(tbTotGas) <- c("Αρ.γαστρεντεριτίδων", "Αρ.επισκέψεων", "Γαστρεντερίτιδες / 1000 επισκέψεις")
+
+
+
+cat("\nΔημιουργία εκθέσεων sentinel...\n")
+
+styleDefs <- getStyleDefs()
+
+styleDefs$RTable0 <- styleDefs$RTable1
+styleDefs$RTable0$marginLeft <- "0"
+styleDefs$RTable0$marginRight <- "0"
+styleDefs$RTable0$marginTop <- "0"
+styleDefs$RTable0$marginBottom <- "0"
+
+styleDefs$MyNormal <- styleDefs$ArialNormal
+styleDefs$MyNormal$fontName <- "Fira Sans"
+styleDefs$MyNormal$fontSize <- "10pt"
+
+styleDefs$MyCenteredNormal <- styleDefs$MyNormal
+styleDefs$MyCenteredNormal$textAlign <- "center"
+
+styleDefs$MyBold <- styleDefs$MyCenteredNormal
+styleDefs$MyBold$fontType <- "bold"
+
+setStyleDefs(styleDefs)
+
+styles <- getStyles()
+styles$paragraph <- "MyCenteredNormal"
+styles$cellText <- "MyCenteredNormal"
+styles$headerText <- "MyCenteredNormal"
+styles$table <- "RTable0"
+setStyles(styles)
+
+options("OutDec"=",")
+odfWeave(sprintf("%ssentFluReport.odt", path_input), sprintf("%ssentFluReport-%s.odt", path_output, tgtweek))
+odfWeave(sprintf("%ssentGastroReport.odt", path_input), sprintf("%ssentGastroReport-%s.odt", path_output, tgtweek))
+options("OutDec"=".")
+dev.off()
+
 
 
 cat("\nΑποθήκευση συνόλου ανάλυσης...\n")
@@ -529,6 +649,12 @@ print(plirotita_eidikotita)
 cat("ΙΚΑ Αμαρουσίου: "); cat(msg_marousi[1]); cat(msg_marousi[2]); cat("\n")
 
 
+showgri<-function(yweek) {
+  result <- t(subset(resAll, yearweek==yweek)[,c("gritot","totvis")])
+  rownames(result) <- c("Σύνολο γριπωδών συνδρομών","Σύνολο επισκέψεων")
+  if (ncol(result)>1) colnames(result) <- "#"
+  result
+  }
 print(showgri(tgtweek))
 cat(paste("Rate για την εβδομάδα ",(tgtweek%%100),"/",((tgtweek%/%100))," :   ",prettyNum(round(subset(resAll, yearweek==tgtweek)$gri,2), decimal.mark=",")," γριπώδεις συνδρομές ανά 1000 επισκέψεις\n",sep=""))
 

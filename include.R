@@ -427,7 +427,7 @@ fitGastroModel <- function(resG) {
   resG$week <- resG$yearweek %% 100
   resG$t <- 1:nrow(resG)
   resG$knots <- 0; resG$knots[resG$week==1] <- 1
-  resG$knots[nrow(resG)-(4:0)] <- 0
+  resG$knots[nrow(resG)-(9:0)] <- 0
 
   resG$Y <- with(resG, (gas/1000)*N)
   modelG <- glm(Y ~ ns(t, knots=which(knots==1)) + pbs(week, df=4), offset=log(N), data=resG, family="quasipoisson")
@@ -443,11 +443,33 @@ fitGastroModel <- function(resG) {
   resG$fitted <- with(resG, Pnb/resG$N*1000)
   resG$UPI <- with(resG, UPInb/resG$N*1000)
 
-  resG$ywtp <- NA
-  resG$ywtp[with(resG, (week %% 100) %in% c(1,26))] <- with(resG, yearweek[(week %% 100) %in% c(1,26)])
+  resG$ywtp <- FALSE
+  resG$ywtp[with(resG, (week %% 100) %in% c(1,13,26,40))] <- TRUE
   
   attr(resG, "modelG") <- modelG
   attr(resG, "od") <- od
   
   resG
+}
+
+
+
+
+gastro_graph <- function(resGastro, back=120, legend=TRUE, ylab="Κρούσματα γαστρεντερίτιδας ανά 1000 επισκέψεις") {
+  ymax <-  ceiling(max(c(resGastro$UPI, resGastro$gas), na.rm=TRUE)/10 + 1)*10
+  plot(resGastro$gas, type="n", col="brown", xlim=ceiling(nrow(resGastro)/10 + 1)*10 + c(-back,0), ylim=c(0,ymax), xaxt="n", ylab=ylab, xlab=NA, bty="l", yaxs="i")
+  abline(v=with(resGastro, t[ywtp]), col="grey", lty="dotted")
+  abline(h=seq(0,ymax,by=10), col="grey", lty="dotted")
+  axis(1, at=with(resGastro, t[ywtp]), labels=with(resGastro, yearweek[ywtp]), las=2)
+
+  points(resGastro$fitted, type="l", col="green", lwd=2)
+  points(resGastro$UPI, type="l", col="red", lwd=2, lty="dashed")
+    
+  points(resGastro$gas, type="l", col="purple", lwd=2)
+  
+  if (legend) {
+    legend("top", legend=c("Παρατηρούμενα", "Αναμενόμενα", "+2SD"), 
+        lty=c("solid","solid","dashed"), lwd=2, horiz=TRUE, 
+        col=c("purple","green","red"), bg="white", box.col="white", seg.len=3)
+  }
 }
