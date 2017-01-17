@@ -585,13 +585,19 @@ colnames(plirotita_nuts) <- c("Βόρεια Ελλάδα", "Κεντρική Ε�
 
 
 # Πίνακες γριπωδών συνδρομών & γαστρεντεριτίδων
-tbTotGri <- sapply(list(resGri1, resGri2, resGri3, resGri4, res), function(x) 
-    prettyNum(round(unlist(subset(x, yearweek==tgtweek)[,c(5:4,2)]), 2), big.mark=".", decimal.mark=","))
+tbTotGri <- sapply(list(resGri1, resGri2, resGri3, resGri4, res), function(x) {
+    a <- unlist(subset(x, yearweek==tgtweek)[,c(5:4,2)])
+    if (length(a)==0) a <- c(gritot=0, totvis=0, gri=0)
+    prettyNum(round(a, 2), big.mark=".", decimal.mark=",")
+})
 colnames(tbTotGri) <- c("0-4 ετών", "5-14 ετών", "15-65 ετών", "&gt;65 ετών", "Σύνολο")
 rownames(tbTotGri) <- c("Αρ.γριπωδών συνδρομών", "Αρ.επισκέψεων", "Γριπώδεις συνδρομές / 1000 επισκέψεις")
 
-tbTotGas <- sapply(list(resGas1, resGas2, resGas3, resGas4, resGastro), function(x) 
-    prettyNum(round(unlist(subset(x, yearweek==tgtweek)[,c(5:4,2)]), 2), big.mark=".", decimal.mark=","))
+tbTotGas <- sapply(list(resGas1, resGas2, resGas3, resGas4, resGastro), function(x) {
+    a <- unlist(subset(x, yearweek==tgtweek)[,c(5:4,2)])
+    if (length(a)==0) a <- c(gastot=0, totvis=0, gri=0)
+    prettyNum(round(a, 2), big.mark=".", decimal.mark=",")
+})
 colnames(tbTotGas) <- c("0-4 ετών", "5-14 ετών", "15-65 ετών", "&gt;65 ετών", "Σύνολο")
 rownames(tbTotGas) <- c("Αρ.γαστρεντεριτίδων", "Αρ.επισκέψεων", "Γαστρεντερίτιδες / 1000 επισκέψεις")
 
