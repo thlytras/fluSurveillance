@@ -25,7 +25,7 @@ mcols_outOfMeth <- c(
     "deathdate" = 29, 
     "sex" = 4, 
     "age" = 5,
-    "vacc" = 16
+    "vacc" = 17
 )
 
 
