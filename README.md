@@ -1,0 +1,1 @@
+This code is used at KEELPNO (Hellenic Centre for Disease Control and Prevention) to analyze the data from **influenza surveillance**, including sentinel, laboratory and SARI surveillance. It automatically produces *full weekly reports* and other output, and *includes a shiny application* (used at the KEELPNO intranet) to monitor the output at any time.
