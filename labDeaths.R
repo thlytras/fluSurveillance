@@ -494,5 +494,7 @@ if (makeReport) {
   cat("\nΈτοιμη η αναφορά!\n")
 }
 
+save.image(file = paste(path_output,"latest_report.RData",sep=""))
+
 cat("\nΟλοκληρώθηκε\n\n")
 
