@@ -20,9 +20,9 @@ mcols_meth <- c(
 )
 mcols_outOfMeth <- c(
     "flutype" = 8, 
-    "hospAdmDate" = 14, 
-    "outcome" = 28, 
-    "deathdate" = 29, 
+    "hospAdmDate" = 13, 
+    "outcome" = 27, 
+    "deathdate" = 28, 
     "sex" = 4, 
     "age" = 5,
     "vacc" = 17
