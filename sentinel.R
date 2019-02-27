@@ -307,7 +307,7 @@ cat("\nΕξαγωγή ILI rate (βασικό μοντέλο)...\n")
 limweek <- 201439
 if (opts$weeksRecalc>0 & file.exists(paste(path_output, "res.RData", sep=""))) {
   limweek <- isoweek(isoweekStart(tgtweek)-opts$weeksRecalc*7, "both_num")
-  if (limweek<201440) { limweek <- 201439; break }
+  if (limweek<201440) { limweek <- 201439 }
   load(paste(path_output, "res.RData", sep=""))
   limweek <- min(limweek, max(res$yearweek))
   resOld <- rbind(resOld, subset(res, yearweek<=limweek))
