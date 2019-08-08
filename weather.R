@@ -1,7 +1,7 @@
 library(FluMoDL)
 load("data/map_perif.RData")  # Load region map of Greece (class SpatialPolygonsDataFrame)
 
-if (FALSE) {  # Set to FALSE to NOT update weather
+if (TRUE) {  # Set to FALSE to NOT update weather
   if (!file.exists("data/gsod.RData")) {
     cat("Downloading all weather stations....\n")
 
