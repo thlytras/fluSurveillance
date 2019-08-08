@@ -8,3 +8,5 @@ data/GRIPI_NOTIA.xls
 data/momoOutput.dta
 .Rproj.user
 flu/latest_analysis.RData
+data/gsod.RData
+data/mdTemp.RData
