@@ -31,12 +31,14 @@ if (is.null(opts$calculateOld)) opts$calculateOld <- 1
 if (is.null(opts$noDelayed)) opts$noDelayed <- 0
 if (is.null(opts$repLimDay)) opts$repLimDay <- 3
 if (is.null(opts$weeksRecalc)) opts$weeksRecalc <- 40
+if (is.null(opts$grid)) opts$grid <- 1
+if (is.null(opts$thresholds)) opts$thresholds <- 0
 
 required_files_old <- c("IKA5.sav", "Ika5a.rec", "sent08.rec", "sent12.rec", "sentinel_doctors_10.2005.sav", "sentKY.rec", "SENTNEWA.sav", "nomos_populations.sav", "oldSentinel.R")
 tmp <- c(paste(path_input, "oldSentinel/", required_files_old[1:7], sep=""), paste(path_input, required_files_old[8], sep=""), required_files_old[9])
 names(tmp) <- required_files_old
 required_files_old <- tmp; rm(tmp)
-required_files <- c("sent14.rec")
+required_files <- c("sent14.rec", "thresholds.txt")
 tmp <- paste(path_input, required_files, sep="")
 names(tmp) <- required_files
 required_files <- tmp; rm(tmp)
@@ -177,12 +179,12 @@ if (capabilities("cairo")) formats <- append(formats,c("ps","pdf","svg"))  # Η 
 if (length(formats)>0) {
   repeat {
     if(interactive()) {
-      graphtype<-readline(paste("\nΣε τι μορφή τα θέλετε τα διαγράμματα? (",paste(formats,collapse=","),") [",formats[1],"] ",sep=""))
+      graphtype<-readline(paste("\nΣε τι μορφή τα θέλετε τα διαγράμματα? (",paste(formats,collapse=","),") [",formats[5],"] ",sep=""))
     } else {
       graphtype <- commandArgs(TRUE)[5]
       if (is.na(graphtype) || graphtype=="-") graphtype<-""
     }
-    if (graphtype=="") graphtype<-formats[1]
+    if (graphtype=="") graphtype<-formats[5]
     if (graphtype %in% formats) break
     if (interactive()) {
       cat("\nΕσφαλμένη εισαγωγή - ξαναπροσπαθήστε!\n")
@@ -205,6 +207,8 @@ timer<-system.time({   # έναρξη χρονομέτρησης
 
 cat("\nΕπεξεργασία στοιχείων - παρακαλώ περιμένετε...\n\n")
 
+# Ανάγνωση epidemic thresholds
+thresholds <- unname(unlist(read.table(paste0(path_input,"thresholds.txt"))))
 
 # Φόρτωση αρχείου πληθυσμών ανά νομό
 tryCatch({
@@ -465,14 +469,18 @@ if (is.na(graphtype)) {
   ytp <- c(tgtyear-1, tgtyear) # Προσωρινή τροποποίηση για φέτος (θα δείχνουμε μόνο 2 χρονιές)
   if (sum(ytp>=2014)>0 & sum(ytp>=2014)<length(ytp)) {
     sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), 
-      ci=ciInPlot, alpha=c(0.1,0.15), yaxis2=ytp[ytp<2014], mult=1/5, 
+      ci=ciInPlot, alpha=c(0.1,0.15), yaxis2=ytp[ytp<2014], mult=1/5,
+      thresholds = if (opts$thresholds) thresholds else 0,
+      ygrid = if (opts$grid) 0 else NA,
       ylab=paste("Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Νέο σύστημα επιτήρησης, ",
         paste(paste(ytp[ytp>=2014],"-",ytp[ytp>=2014]+1,sep=""), collapse=", "), ")", sep=""),
       ylab2=paste("Κρούσματα γριπώδους συνδρομής ανά 1000 επισκέψεις\n(Παλιό σύστημα επιτήρησης, ",
         paste(paste(ytp[ytp<2014],"-",ytp[ytp<2014]+1,sep=""), collapse=", "), ")", sep=""))
   } else {
-    #sentinel_graph(ytp, col=c("black", "navyblue","red3"), lty=c(3,3,1), lwd=c(1,1,1.5), ci=ciInPlot, alpha=c(0.1,0.15))
-    sentinel_graph(ytp, col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), ci=ciInPlot, alpha=c(0.1,0.15)) # Προσωρινή τροποποίηση για φέτος (θα δείχνουμε μόνο 2 χρονιές)
+    sentinel_graph(ytp, col=c("navyblue","red3"), lty=c(3,1), lwd=c(1,1.5), 
+      ci=ciInPlot, alpha=c(0.1,0.15), 
+      thresholds = if (opts$thresholds) thresholds else 0,
+      ygrid = if (opts$grid) 0 else NA)
   }
   dev.off()
   
