@@ -2,7 +2,11 @@
 
 library(stats)
 library(utils)
+library(graphics)
+library(grDevices)
+
 library(FluHMM)
+
 
 load("output/latest_analysis.RData")
 
