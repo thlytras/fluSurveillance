@@ -236,7 +236,7 @@ sentinel_graph <- function(years, dataset="resAll", col=rainbow(length(years)),
   par(mar=c(5.1,4.1+grepl("\n",ylab),2.1,2.1+(2.5*!is.na(yaxis2[1]))+grepl("\n",ylab2)))
   plot(0, type="n", bty="l", xaxt="n", ylim=c(0,limrate), xlim=c(1,ifelse(maxwk==53,34,33)), ylab=ylab, xlab="Εβδομάδα")
   if (!is.null(thresholds)) {
-    abline(h=thresholds, col=c("dodgerblue","violetred","red"), lty="dotted", lwd=1)
+    abline(h=thresholds, col=c("dodgerblue","violetred","red"), lty="dashed", lwd=1)
   }
   axis(1, at=1:(maxwk-19), labels=NA)
   mtext(c(40:maxwk,1:20), side=1, at=1:(maxwk-19), cex=0.7, line=0.5)
