@@ -115,14 +115,14 @@ maxwk <- ifelse(sum(as.integer(isoweek(as.Date(paste(tgtyear,"-12-31",sep="")))=
 weekSel <- c(tgtyear*100+40:maxwk, (tgtyear+1)*100+1:20)
 
 if (xlPack=="XLConnect") {
-    all_swabs <- Reduce(`+`, lapply(c("BOREIA", "EKPA", "NOTIA"), function(x){
+    all_swabs <- Reduce(`+`, lapply(c("BOREIA", "EKPA", "NOTIA", "KRITI"), function(x){
         a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
         a <- subset(readWorksheet(a, sheet="TOTAL", startRow=3)[,-1], !is.na(Week))
         rownames(a) <- a$Week
         as.matrix(a[,-1])
     }))
 } else {
-    all_swabs <- Reduce(`+`, lapply(c("BOREIA", "EKPA", "NOTIA"), function(x){
+    all_swabs <- Reduce(`+`, lapply(c("BOREIA", "EKPA", "NOTIA", "KRITI"), function(x){
         a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=4)
         a <- sapply(a[3:(nrow(a)-1), -1], function(y)as.integer(as.character(y)))
         rownames(a) <- a[,1]
@@ -385,7 +385,7 @@ if (xlPack=="XLConnect") {
     rb$summSwab <- cbind(nosok = rowSums(mapply(function(x,i){
             a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
             unlist(subset(readWorksheet(a, sheet=i, startRow=3), Week==tgtweek%%100))[-(1:(4-i/2))]
-        }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+        }, c("BOREIA", "EKPA", "NOTIA", "KRITI"), c(2,4,2)), na.rm=TRUE),
         sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
             a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
             rowSums(sapply(c(1,3), function(i) {
@@ -400,7 +400,7 @@ if (xlPack=="XLConnect") {
             a <- as.integer(as.character(unlist(a[a[,(4-i/2)]==as.character(tgtweek%%100),])))[-(1:(4-i/2))]
             names(a) <- colnames(all_swabs)
             a
-        }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+        }, c("BOREIA", "EKPA", "NOTIA", "KRITI"), c(2,4,2)), na.rm=TRUE),
         sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
             rowSums(sapply(c(1,3), function(i) {
                 a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=i)
@@ -419,7 +419,7 @@ if (xlPack=="XLConnect") {
     rb$summSwabTot <- cbind(nosok = rowSums(mapply(function(x,i){
             a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
             unlist(subset(readWorksheet(a, sheet=i, startRow=3), is.na(Week)))[-(1:(4-i/2))]
-        }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+        }, c("BOREIA", "EKPA", "NOTIA", "KRITI"), c(2,4,2)), na.rm=TRUE),
         sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
             a <- loadWorkbook(paste(path_input, "GRIPI_", x, ".xls", sep=""))
             rowSums(sapply(c(1,3), function(i) {
@@ -434,7 +434,7 @@ if (xlPack=="XLConnect") {
             a <- as.integer(as.character(unlist(a[nrow(a),])))[-(1:(4-i/2))]
             names(a) <- colnames(all_swabs)
             a
-        }, c("BOREIA", "EKPA", "NOTIA"), c(2,4,2)), na.rm=TRUE),
+        }, c("BOREIA", "EKPA", "NOTIA", "KRITI"), c(2,4,2)), na.rm=TRUE),
         sentinel = Reduce(`+`, lapply(c("BOREIA", "NOTIA"), function(x){
             rowSums(sapply(c(1,3), function(i) {
                 a <- read.xls(paste(path_input, "GRIPI_", x, ".xls", sep=""), sheet=i)
