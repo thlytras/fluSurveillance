@@ -2,5 +2,5 @@ calculateOld	0
 noDelayed	0
 repLimDay	3
 weeksRecalc 15
-grid    1
-thresholds  0
+grid    0
+thresholds  1
