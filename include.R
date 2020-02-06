@@ -87,7 +87,7 @@ fitFluModel <- function(big, NUTSpop, gri="gritot", vis="totvis", verbose=FALSE,
           m <- glmer(gri ~ 1 + (1|stratum) + (1|codeiat), 
                 offset=log(vis), data=x, family="poisson", weights=wgt,
                 control=glmerControl(optimizer="bobyqa", 
-                    check.conv.singular=.makeCC(action="ignore", tol=1e-4)))
+                    check.conv.singular=.makeCC(action="ignore", tol=8e-5)))
         }, silent=TRUE)
         if (class(err)=="try-error") return(NA)
         # If convergence warnings, set calc.derivs=FALSE
@@ -95,7 +95,7 @@ fitFluModel <- function(big, NUTSpop, gri="gritot", vis="totvis", verbose=FALSE,
             m <- glmer(gri ~ 1 + (1|stratum) + (1|codeiat), 
                 offset=log(vis), data=x, family="poisson", weights=wgt,
                 control=glmerControl(optimizer="bobyqa", calc.derivs=FALSE,
-                    check.conv.singular=.makeCC(action="ignore", tol=1e-4)))
+                    check.conv.singular=.makeCC(action="ignore", tol=8e-5)))
           }
         return(m)
         })
@@ -315,7 +315,7 @@ fitFluGroupModel <- function(grp, big, NUTSpop, verbose=FALSE, returnModels=FALS
             m <- glmer(gritot ~ 1 + (1|stratum) + (1|codeiat), 
               offset=log(totvis), data=x, family="poisson", weights=wgt,
               control=glmerControl(optimizer="bobyqa", 
-                check.conv.singular=.makeCC(action="ignore", tol=1e-4)))
+                check.conv.singular=.makeCC(action="ignore", tol=8e-5)))
           }, silent=TRUE)
           if (class(err)=="try-error") return(NA)
           attr(m, "fi") <- as.integer(levels(factor(x$grp)))
@@ -324,7 +324,7 @@ fitFluGroupModel <- function(grp, big, NUTSpop, verbose=FALSE, returnModels=FALS
             m <- glmer(gritot ~ -1 + grp + (1|stratum) + (1|codeiat), 
               offset=log(totvis), data=x, family="poisson", weights=wgt,
               control=glmerControl(optimizer="bobyqa", 
-                check.conv.singular=.makeCC(action="ignore", tol=1e-4)))
+                check.conv.singular=.makeCC(action="ignore", tol=8e-5)))
           }, silent=TRUE)
           if (class(err)=="try-error") return(NA)
           # If convergence warnings, set calc.derivs=FALSE
@@ -332,7 +332,7 @@ fitFluGroupModel <- function(grp, big, NUTSpop, verbose=FALSE, returnModels=FALS
             m <- glmer(gritot ~ -1 + grp + (1|stratum) + (1|codeiat), 
               offset=log(totvis), data=x, family="poisson", weights=wgt,
               control=glmerControl(optimizer="bobyqa", calc.derivs=FALSE, 
-                check.conv.singular=.makeCC(action="ignore", tol=1e-4)))
+                check.conv.singular=.makeCC(action="ignore", tol=8e-5)))
           }
         }
         return(m)
