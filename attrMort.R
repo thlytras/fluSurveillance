@@ -16,8 +16,8 @@ load("../influenza_data/fluData.RData")
 cat(sprintf("(ILI rates available until week %s)\n", max(resAll$yearweek)))
 
 load("output/latest_report.RData")
-tgtweek <- 201931  # Manually set tgtweek if necessary
-rm(isoweek)
+# tgtweek <- 201931  # Manually set tgtweek if necessary
+rm(isoweek, isoweekStart)
 
 totDeaths <- subset(totDeaths, yearweek<=tgtweek)
 
@@ -26,8 +26,12 @@ names(labConfDeaths)[length(labConfDeaths)] <- tgtyear
 
 datLab <- subset(datLabAll, yearweek <= tgtweek)
 datLab$pct <- datLab$Positive/datLab$Total
-datLab$pctH3 <- datLab[["A(H3N2)"]]/datLab$Total
-datLab$pctH1 <- datLab[["A(H1N1)pdm09"]]/datLab$Total
+# Assign proportionally unsubtyped A cases
+inf0 <- function(x) ifelse(is.finite(x), x, 0)
+datLab$pctH3 <- inf0(datLab[["A(H3N2)"]]/datLab$Total) +
+    inf0(with(datLab, `A(H1N1)pdm09`*(Other.A+Unknown.A)/(`A(H1N1)pdm09`+`A(H3N2)`)/Total))
+datLab$pctH1 <- inf0(datLab[["A(H1N1)pdm09"]]/datLab$Total) +
+    inf0(with(datLab, `A(H3N2)`*(Other.A+Unknown.A)/(`A(H1N1)pdm09`+`A(H3N2)`)/Total))
 datLab$pctB <- datLab[["B"]]/datLab$Total
 
 datLab <- datLab[,c("yearweek","Positive","pct","pctH1","pctH3","pctB")]
@@ -153,6 +157,47 @@ plotYrFluDeaths <- function(family="Fira Sans") {
 }
 
 
+ 
+plotWkFluDeaths <- function(type="AllFlu", ci=TRUE, col="purple", lwd=15,
+    main="Εβδομαδιαίοι θάνατοι αποδιδόμενοι στη γρίπη",
+    sub="Όλοι οι τύποι γρίπης, όλες οι ηλικίες",
+    ylab="Αριθμός θανάτων", family="Fira Sans",
+    xlab="Εβδομάδα", ylim=NULL, alpha=50, grid=FALSE, greyscale=FALSE) {
+  
+  NA0 <- function(x) { x[is.na(x)] <- 0; x }
+
+  yrange <- if (ci && is.null(ylim)) range(pretty(range(inflAttr_weekly$All[,paste0(type, c(".lo", ".hi"))], na.rm=TRUE))) else ylim
+  ciCol <- rgb(t(col2rgb(col)), alpha=alpha, max=255)
+  if (greyscale) {
+    col <- "black"
+    ciCol <- "gray80"
+  }
+  
+  wks <- isoweek(seq.Date(isoweekStart(as.integer(rownames(inflAttr_weekly$All)[1])), isoweekStart(as.integer(rownames(inflAttr_weekly$All)[1])+80), by="week"), "both_num")
+  
+  xs <- match(as.integer(rownames(inflAttr_weekly$All)), wks)
+
+  par(family=family)
+  plot(x=xs, y=inflAttr_weekly$All[,type], bty="l", ylim=yrange, xaxt="n", yaxt="n", ylab=NA, xlab=NA, type="n", xlim=c(1,length(wks)))
+  mtext(xlab, side=1, line=3.5)
+  abline(h=0, lty="dotted")
+  axis(2, las=2)
+    if (grid) {
+      abline(h=axTicks(2), lty="dotted", col="darkgrey", lwd=0.5)
+      abline(v=xDivs, lty="dotted", col="darkgrey", lwd=0.5)
+    }
+  if (ci) {
+    polygon(x=c(xs,rev(xs)), y=NA0(c(inflAttr_weekly$All[,paste0(type, ".lo")], rev(inflAttr_weekly$All[,paste0(type, ".hi")]))), col=ciCol, border=NA)
+  }
+  points(x=xs, y=inflAttr_weekly$All[,type], type="h", lwd=lwd, lend=1, col=col)
+  axis(1, at=1:length(wks), labels=sprintf("%s-%02d", wks%/%100, wks%%100), las=2, cex.axis=0.9, lwd.ticks=0, mgp=c(3,0.3,0))
+
+  mtext(main, side=3, line=2, cex=1.2, font=2)
+  mtext(ylab, side=2, line=2.5)
+  mtext(sprintf("%s, περίοδος επίτήρησης %s-%s", sub, wks[1]%/%100, wks[1]%/%100+1), side=3, line=0.8, cex=1.1)
+}
+
+
 
 pie_ <- function (x, labels = names(x), edges = 200, radius = 0.8, clockwise = FALSE, 
     init.angle = if (clockwise) 90 else 0, density = NULL, angle = 45, 
@@ -228,6 +273,7 @@ plotPropTypeDeaths <- function(family="Fira Sans") {
   
   est <- unlist(inflAttr_seasonal$All[as.character(tgtyear), c("FluB","FluH3","FluH1")])
   names(est) <- c("B", "A/H3N2", "A/H1N1")
+  est[est<0] <- 0
 
   par(mfrow=c(1,2), family=family, oma=c(0,0,2,3))
   pie_(est, showValues=TRUE, border="white", ticks=FALSE, col=cols[names(est)], cex=1.2,
@@ -242,10 +288,11 @@ plotMomoTypeDeaths <- function(family="Fira Sans") {
   momo$yearweek <- as.integer(gsub("-","",as.character(momo$wk2)))
   momopl <- subset(momo, yearweek>=tgtyear*100+40 & yearweek<=tgtyear*100+120)[,c("yearweek","nbc","Pnb","UPIb2", "UPIb4")]
   momopl$inflAttr <- inflAttr_weekly$All$AllFlu[match(momopl$yearweek, as.integer(rownames(inflAttr_weekly$All)))]
+  xlabs <- isoweek(seq(isoweekStart(tgtyear*100+40), isoweekStart(tgtyear*100+120), by="week"))
   par(mar=c(7,4,2,2), family=family)
   plot(0, type="n", bty="l", 
     ylim=range(pretty(range(momopl[,2:5]))),
-    xlim=c(1,nrow(momopl)), 
+    xlim=c(1,length(xlabs)), 
     xaxt="n", ylab="Αριθμός θανάτων (από όλες τις αιτίες)", xlab=NA)
   mtext("Έτος - Αριθμός εβδομάδας", line=5, side=1)
   polygon(x=c(1:nrow(momopl),nrow(momopl):1),
@@ -255,8 +302,8 @@ plotMomoTypeDeaths <- function(family="Fira Sans") {
   points(y=momopl$UPIb2, x=1:nrow(momopl), col="orange2", type="l", lwd=2)
   points(y=momopl$Pnb, x=1:nrow(momopl), col="firebrick2", type="l", lwd=2)
   points(y=momopl$nbc, x=1:nrow(momopl), col="steelblue4", type="l", lwd=2)
-  axis(1, at=1:nrow(momopl), las=2,
-    labels=paste0(substr(momopl$yearweek,1,4), "-", substr(momopl$yearweek,5,6)))
+  axis(1, at=1:length(xlabs), las=2,
+    labels=paste0(substr(xlabs,1,4), "-", substr(xlabs,5,6)))
   legend("topright", "Αποδιδόμενη στη γρίπη θνησιμότητα", pch=15, bty="n", col="magenta", pt.cex=3)
 }
 
@@ -266,6 +313,12 @@ plotMomoTypeDeaths <- function(family="Fira Sans") {
 cairo_pdf("output/fluDeaths_yearly.pdf", width=8, height=5)
 #par(bg="#fafafa")
 plotYrFluDeaths()
+dev.off()
+
+
+cairo_pdf("output/fluDeaths_weekly.pdf", width=8, height=5)
+#par(bg="#fafafa")
+plotWkFluDeaths()
 dev.off()
 
 
